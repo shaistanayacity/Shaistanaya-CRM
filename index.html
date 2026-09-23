@@ -257,6 +257,8 @@
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .app-loading.error::before { display: none; }
+  .app-loading.error { color: var(--danger); }
   @media (prefers-reduced-motion: reduce) { .app-loading::before { animation: none; } }
 
   .page-header {
@@ -1879,6 +1881,7 @@
       db = null;
       var notMember = e && e.code === "42501";
       showToast(notMember ? "Akun belum terdaftar sebagai anggota tim" : "Gagal memuat data dari server (" + (e.code || e.message || "error") + ")");
+      document.getElementById("app-loading").classList.add("error");
       document.getElementById("app-loading").textContent = notMember
         ? "Akun " + (session.user.email || "ini") + " belum terdaftar sebagai anggota tim. Minta admin menambahkan email ini ke daftar tim."
         : "Gagal memuat data. Muat ulang halaman untuk mencoba lagi.";
