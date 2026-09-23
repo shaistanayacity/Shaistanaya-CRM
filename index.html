@@ -1877,8 +1877,11 @@
       renderAll();
     } catch (e) {
       db = null;
-      showToast("Gagal memuat data dari server (" + (e.code || e.message || "error") + ")");
-      document.getElementById("app-loading").textContent = "Gagal memuat data. Muat ulang halaman untuk mencoba lagi.";
+      var notMember = e && e.code === "42501";
+      showToast(notMember ? "Akun belum terdaftar sebagai anggota tim" : "Gagal memuat data dari server (" + (e.code || e.message || "error") + ")");
+      document.getElementById("app-loading").textContent = notMember
+        ? "Akun " + (session.user.email || "ini") + " belum terdaftar sebagai anggota tim. Minta admin menambahkan email ini ke daftar tim."
+        : "Gagal memuat data. Muat ulang halaman untuk mencoba lagi.";
     }
   }
 

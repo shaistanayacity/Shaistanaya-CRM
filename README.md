@@ -18,16 +18,24 @@ Aplikasinya berupa satu halaman statis (`index.html` + `config.js`), tanpa build
 npx serve .        # atau: python3 -m http.server
 ```
 
-Tanpa konfigurasi, aplikasi berjalan di **mode lokal**: data disimpan di `localStorage` browser, cocok untuk mencoba.
 
-## Menyambungkan ke Supabase (data dipakai bersama satu tim)
+## Database (Supabase)
 
-1. Buat project di [Supabase](https://supabase.com).
-2. Buka **SQL Editor**, jalankan isi `supabase/schema.sql`.
-3. Di **Authentication → Users**, tambahkan akun email + password untuk tiap anggota tim CS. (Matikan pendaftaran publik di **Authentication → Sign In / Providers** supaya hanya akun yang kamu buat yang bisa masuk.)
-4. Salin **Project URL** dan **anon/publishable key** dari **Project Settings → API** ke `config.js`.
+Aplikasi sudah tersambung ke project Supabase **Shaistanaya City CRM** (`config.js`), dan skema dari `supabase/schema.sql` sudah dijalankan di sana.
 
-Setelah itu aplikasi akan menampilkan halaman login, dan semua anggota tim melihat data lead yang sama. Tabel dilindungi Row Level Security: hanya user yang sudah login yang bisa membaca atau menulis.
+Menambah anggota tim CS:
+
+1. **Authentication → Users → Add user**: buat akun dengan email + password.
+2. **SQL Editor**: daftarkan emailnya sebagai anggota tim:
+   ```sql
+   insert into public.team_members (email) values ('nama@contoh.com');
+   ```
+
+Hanya email yang ada di `team_members` yang bisa membaca atau mengubah data lead (dijaga Row Level Security). Menghapus akses: `delete from public.team_members where email = 'nama@contoh.com';`
+
+Disarankan juga mematikan pendaftaran publik di **Authentication → Sign In / Providers → Allow new users to sign up**.
+
+Kalau `config.js` dikosongkan, aplikasi jalan dalam mode lokal (data di browser saja).
 
 ## Deploy
 
