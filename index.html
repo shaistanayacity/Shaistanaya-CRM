@@ -1022,6 +1022,12 @@
     return source;
   }
 
+  // With Supabase, only recent + still-active leads load on open (keeps egress low);
+  // closed leads (Deal/Hilang) older than this are fetched on demand.
+  var RECENT_DAYS = 90;
+  var historyLoaded = true; // set false when a Supabase load skipped old closed leads
+  var historyLoading = null;
+
   var filters = { source: "", stage: "", minat: "", q: "", dateFrom: "", dateTo: "" };
   var trendMode = "daily";
 
@@ -1297,9 +1303,11 @@
     surveyCount = surveyCount ? surveyCount.count : 0;
 
     var html = "";
-    html += renderPageHeader("Dashboard", "Ringkasan performa lead &amp; funnel bulan ini", "ph-add-dash");
+    html += renderPageHeader("Dashboard", historyLoaded
+      ? "Ringkasan performa lead &amp; funnel dari semua lead tercatat"
+      : "Ringkasan performa lead &amp; funnel " + RECENT_DAYS + " hari terakhir (plus lead yang masih aktif)", "ph-add-dash");
     html += '<div class="stat-row">';
-    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.total + '</span><span class="label">Total lead bulan ini</span></div><div class="value mono">' + total + '</div></div>';
+    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.total + '</span><span class="label">Total lead</span></div><div class="value mono">' + total + '</div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.check + '</span><span class="label">Sudah direspon</span></div><div class="value mono">' + resp.rate + '<small>%</small></div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.survey + '</span><span class="label">Survey</span></div><div class="value mono">' + surveyCount + '</div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.clock + '</span><span class="label">Rata-rata waktu respon</span></div><div class="value mono">' + (resp.avgMinutes != null ? resp.avgMinutes : "—") + '<small> mnt</small></div></div>';
@@ -1615,8 +1623,11 @@
     html += '<div class="field-wrap"><label for="filter-q">Cari nama / no. telp</label><input type="text" id="filter-q" placeholder="cth. Dewi atau 0812…" value="' + escapeHtml(filters.q) + '"></div>';
     html += '</div>';
 
-    html += '<div class="filter-summary"><span class="hint" style="margin:0">Menampilkan ' + filtered.length + ' dari ' + leads.length + ' lead</span>';
-    html += '<span style="display:flex;gap:8px"><button type="button" class="ghost" id="export-csv">⬇ Export CSV</button><button type="button" class="ghost" id="filter-reset">Reset filter</button></span></div>';
+    html += '<div class="filter-summary"><span class="hint" style="margin:0">Menampilkan ' + filtered.length + ' dari ' + leads.length + ' lead' +
+      (historyLoaded ? '' : ' · lead Deal/Hilang &gt;' + RECENT_DAYS + ' hari belum dimuat') + '</span>';
+    html += '<span style="display:flex;gap:8px;flex-wrap:wrap">' +
+      (historyLoaded ? '' : '<button type="button" class="ghost" id="load-history">Muat riwayat lama</button>') +
+      '<button type="button" class="ghost" id="export-csv">⬇ Export CSV</button><button type="button" class="ghost" id="filter-reset">Reset filter</button></span></div>';
 
     html += renderLeadsTable(filtered);
     html += '</div>';
@@ -1627,7 +1638,17 @@
     document.getElementById("filter-source").addEventListener("change", function (e) { filters.source = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-stage").addEventListener("change", function (e) { filters.stage = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-minat").addEventListener("change", function (e) { filters.minat = e.target.value; renderAllLeadsView(); });
-    document.getElementById("filter-date-from").addEventListener("change", function (e) { filters.dateFrom = e.target.value; renderAllLeadsView(); });
+    document.getElementById("filter-date-from").addEventListener("change", function (e) {
+      filters.dateFrom = e.target.value;
+      renderAllLeadsView();
+      if (filters.dateFrom && filters.dateFrom < dayKeyLocal(recentCutoff())) ensureHistoryLoaded();
+    });
+    var historyBtn = document.getElementById("load-history");
+    if (historyBtn) historyBtn.addEventListener("click", function () {
+      historyBtn.disabled = true;
+      historyBtn.textContent = "Memuat…";
+      ensureHistoryLoaded();
+    });
     document.getElementById("filter-date-to").addEventListener("change", function (e) { filters.dateTo = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-q").addEventListener("input", function (e) {
       filters.q = e.target.value;
@@ -1641,7 +1662,11 @@
       renderAllLeadsView();
     });
 
-    document.getElementById("export-csv").addEventListener("click", function () {
+    document.getElementById("export-csv").addEventListener("click", async function () {
+      if (!historyLoaded) {
+        showToast("Memuat riwayat lama dulu…");
+        if (!(await ensureHistoryLoaded())) return;
+      }
       var list = getFilteredLeads();
       if (!list.length) { showToast("Tidak ada lead buat diexport"); return; }
       var csv = leadsToCsv(list);
@@ -1831,10 +1856,64 @@
     btn.addEventListener("click", function () { switchView(btn.getAttribute("data-view")); });
   });
 
+  function recentCutoff() {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - RECENT_DAYS);
+    return d;
+  }
+
+  // PostgREST caps each response (1000 rows by default), so read in pages.
+  async function fetchAllLeads(applyFilter) {
+    var PAGE = 1000, from = 0, out = [];
+    for (;;) {
+      var q = applyFilter(db.from("leads").select("*"))
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      var res = await q;
+      if (res.error) throw res.error;
+      out = out.concat(res.data.map(rowToLead));
+      if (res.data.length < PAGE) return out;
+      from += PAGE;
+    }
+  }
+
+  var ACTIVE_STAGE_FILTER = 'stage.in.(Masuk,Direspon,"Follow Up",Janjian)';
+
   async function loadLeadsFromDb() {
-    var res = await db.from("leads").select("*").order("created_at", { ascending: false }).limit(5000);
-    if (res.error) throw res.error;
-    return res.data.map(rowToLead);
+    var cutoff = recentCutoff().toISOString();
+    var list = await fetchAllLeads(function (q) {
+      return q.or('created_at.gte."' + cutoff + '",' + ACTIVE_STAGE_FILTER);
+    });
+    historyLoaded = false;
+    return list;
+  }
+
+  function ensureHistoryLoaded() {
+    if (historyLoaded) return Promise.resolve(true);
+    if (historyLoading) return historyLoading;
+    var cutoff = recentCutoff().toISOString();
+    historyLoading = fetchAllLeads(function (q) {
+      return q.lt("created_at", cutoff).in("stage", ["Deal", "Lost"]);
+    }).then(function (older) {
+      var known = {};
+      leads.forEach(function (l) { known[l.id] = true; });
+      older.forEach(function (l) { if (!known[l.id]) leads.push(l); });
+      leads.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+      historyLoaded = true;
+      refreshAll();
+      showToast(older.length ? older.length + " lead lama dimuat" : "Tidak ada lead lama");
+      return true;
+    }).catch(function (e) {
+      showToast("Gagal memuat riwayat (" + (e.code || e.message || "error") + ")");
+      refreshAll();
+      return false;
+    }).then(function (ok) {
+      historyLoading = null;
+      return ok;
+    });
+    return historyLoading;
   }
 
   async function loadClusterNotesFromDb() {
@@ -1863,6 +1942,7 @@
 
   function startLocal() {
     db = null;
+    historyLoaded = true;
     leads = loadStateLocal();
     clusterNotes = loadClusterNotesLocal();
     renderAll();
