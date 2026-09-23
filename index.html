@@ -472,6 +472,8 @@
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
   .form-grid .full { grid-column: 1 / -1; }
   .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; margin-bottom: 4px; }
+  .range-bar { padding: 14px 20px 0; }
+  .range-bar .filter-bar { max-width: 560px; }
   .filter-summary { display: flex; justify-content: space-between; align-items: center; margin: 2px 0 14px; flex-wrap: wrap; gap: 8px; }
   .chart-toggle {
     display: flex;
@@ -1046,38 +1048,30 @@
     res.setHours(0, 0, 0, 0);
     return res;
   }
-  function latestLeadDate() {
-    if (!leads.length) return new Date();
-    return leads.reduce(function (max, l) {
-      var d = new Date(l.createdAt);
-      return d > max ? d : max;
-    }, new Date(leads[0].createdAt));
-  }
-  function aggregateDaily(count) {
+  // Buckets lead counts per day or per week (weeks start Monday) across [start, end].
+  function aggregateTrend(src, start, end, mode) {
+    var keyOf = mode === "monthly"
+      ? function (d) { return dayKeyLocal(new Date(d.getFullYear(), d.getMonth(), 1)); }
+      : mode === "weekly"
+      ? function (d) { return dayKeyLocal(startOfWeek(d)); }
+      : function (d) { return dayKeyLocal(d); };
     var map = {};
-    leads.forEach(function (l) { var k = dayKeyLocal(new Date(l.createdAt)); map[k] = (map[k] || 0) + 1; });
-    var end = latestLeadDate(); end.setHours(0, 0, 0, 0);
+    src.forEach(function (l) { var k = keyOf(new Date(l.createdAt)); map[k] = (map[k] || 0) + 1; });
     var arr = [];
-    for (var i = count - 1; i >= 0; i--) {
-      var d = new Date(end); d.setDate(d.getDate() - i);
-      arr.push({ label: shortDateLabel(d), count: map[dayKeyLocal(d)] || 0 });
+    var d = mode === "monthly" ? new Date(start.getFullYear(), start.getMonth(), 1)
+      : mode === "weekly" ? startOfWeek(start) : new Date(start);
+    d.setHours(0, 0, 0, 0);
+    while (d <= end) {
+      var label = mode === "monthly" ? pad2(d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2) : shortDateLabel(d);
+      arr.push({ label: label, count: map[dayKeyLocal(d)] || 0 });
+      if (mode === "monthly") d.setMonth(d.getMonth() + 1);
+      else d.setDate(d.getDate() + (mode === "weekly" ? 7 : 1));
     }
     return arr;
   }
-  function aggregateWeekly(count) {
-    var map = {};
-    leads.forEach(function (l) { var k = dayKeyLocal(startOfWeek(new Date(l.createdAt))); map[k] = (map[k] || 0) + 1; });
-    var endWeek = startOfWeek(latestLeadDate());
-    var arr = [];
-    for (var i = count - 1; i >= 0; i--) {
-      var d = new Date(endWeek); d.setDate(d.getDate() - i * 7);
-      arr.push({ label: shortDateLabel(d), count: map[dayKeyLocal(d)] || 0 });
-    }
-    return arr;
-  }
-  function computeSourceConversion() {
+  function computeSourceConversion(src) {
     var groups = {};
-    leads.forEach(function (l) {
+    src.forEach(function (l) {
       var g = sourceGroupOf(l.source);
       if (!groups[g]) groups[g] = { total: 0, deal: 0 };
       groups[g].total++;
@@ -1087,14 +1081,14 @@
       return { name: g, total: groups[g].total, deal: groups[g].deal, rate: groups[g].total ? Math.round((groups[g].deal / groups[g].total) * 100) : 0 };
     }).sort(function (a, b) { return b.rate - a.rate; });
   }
-  function computeFieldBreakdown(field, cap) {
+  function computeFieldBreakdown(src, field, cap) {
     var groups = {};
-    leads.forEach(function (l) {
+    src.forEach(function (l) {
       var v = l[field];
       if (!v || v === "—") return;
       groups[v] = (groups[v] || 0) + 1;
     });
-    var total = leads.length || 1;
+    var total = src.length || 1;
     var list = Object.keys(groups).map(function (v) {
       return { name: v, count: groups[v], pct: Math.round((groups[v] / total) * 100) };
     }).sort(function (a, b) { return b.count - a.count; });
@@ -1110,14 +1104,14 @@
     var max = Math.max.apply(null, data.map(function (p) { return p.count; }).concat([1]));
     var gap = 6;
     var barW = (w - gap * (data.length - 1)) / data.length;
-    var everyNth = data.length > 16 ? 2 : 1;
+    var everyNth = Math.max(1, Math.ceil(data.length / 16));
     var bars = "", labels = "";
     data.forEach(function (p, i) {
       var barH = Math.round((p.count / max) * (h - padBottom - padTop));
       var x = i * (barW + gap);
       var y = h - padBottom - barH;
       bars += '<rect x="' + x.toFixed(1) + '" y="' + y + '" width="' + barW.toFixed(1) + '" height="' + Math.max(barH, 1) + '" rx="1.5" fill="var(--accent)"></rect>';
-      if (p.count > 0) {
+      if (p.count > 0 && data.length <= 31) {
         bars += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (y - 4) + '" font-size="9" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">' + p.count + '</text>';
       }
       if (i % everyNth === 0) {
@@ -1253,20 +1247,20 @@
 
   // ---------- Dashboard ----------
 
-  function computeSourceBreakdown() {
+  function computeSourceBreakdown(src) {
     var groups = {};
-    leads.forEach(function (l) {
+    src.forEach(function (l) {
       var g = sourceGroupOf(l.source);
       groups[g] = (groups[g] || 0) + 1;
     });
-    var total = leads.length || 1;
+    var total = src.length || 1;
     return Object.keys(groups).map(function (g) {
       return { name: g, count: groups[g], pct: Math.round((groups[g] / total) * 100) };
     }).sort(function (a, b) { return b.count - a.count; });
   }
 
-  function computeResponseStats() {
-    var responded = leads.filter(function (l) { return l.respondedAt; });
+  function computeResponseStats(src) {
+    var responded = src.filter(function (l) { return l.respondedAt; });
     if (!responded.length) return { rate: 0, avgMinutes: null, under15: 0 };
     var totalMin = 0, under15 = 0;
     responded.forEach(function (l) {
@@ -1275,27 +1269,108 @@
       if (mins <= 15) under15++;
     });
     return {
-      rate: Math.round((responded.length / leads.length) * 100),
+      rate: src.length ? Math.round((responded.length / src.length) * 100) : 0,
       avgMinutes: Math.round(totalMin / responded.length),
       under15Pct: Math.round((under15 / responded.length) * 100)
     };
   }
 
-  function computeFunnel() {
-    var total = leads.length;
+  function computeFunnel(src) {
+    var total = src.length;
     return STAGES.map(function (stage, idx) {
-      var reached = leads.filter(function (l) { return effectiveRank(l) >= idx; }).length;
+      var reached = src.filter(function (l) { return effectiveRank(l) >= idx; }).length;
       return { stage: stage, count: reached, pct: total ? Math.round((reached / total) * 100) : 0 };
     });
   }
 
+  var DASH_PRESETS = [
+    ["today", "Hari ini"], ["7", "7 hari terakhir"], ["30", "30 hari terakhir"],
+    ["month", "Bulan ini"], ["lastmonth", "Bulan lalu"], ["90", "90 hari terakhir"],
+    ["year", "Tahun ini"], ["all", "Semua waktu"], ["custom", "Custom…"]
+  ];
+  var dashRange = { preset: "month", from: "", to: "" };
+
+  function parseDayKey(k) {
+    var p = k.split("-");
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+  function endOfDay(d) { var e = new Date(d); e.setHours(23, 59, 59, 999); return e; }
+  function fmtDayLong(d) { return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }); }
+
+  function resolveDashRange() {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var start, end = endOfDay(today), label;
+    var preset = dashRange.preset;
+    if (preset === "custom" && (!dashRange.from || !dashRange.to)) preset = "month";
+    if (preset === "today") { start = today; }
+    else if (preset === "7" || preset === "30" || preset === "90") {
+      start = new Date(today); start.setDate(start.getDate() - (+preset - 1));
+    } else if (preset === "month") { start = new Date(today.getFullYear(), today.getMonth(), 1); }
+    else if (preset === "lastmonth") {
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      end = endOfDay(new Date(today.getFullYear(), today.getMonth(), 0));
+    } else if (preset === "year") { start = new Date(today.getFullYear(), 0, 1); }
+    else if (preset === "all") {
+      start = leads.reduce(function (min, l) {
+        var d = new Date(l.createdAt); return d < min ? d : min;
+      }, today);
+      start = new Date(start); start.setHours(0, 0, 0, 0);
+    } else {
+      start = parseDayKey(dashRange.from);
+      end = endOfDay(parseDayKey(dashRange.to));
+      if (start > end) { var t = start; start = new Date(end); start.setHours(0, 0, 0, 0); end = endOfDay(t); }
+    }
+    if (preset === "custom") label = fmtDayLong(start) + " – " + fmtDayLong(end);
+    else label = DASH_PRESETS.filter(function (p) { return p[0] === preset; })[0][1] +
+      (preset === "all" || preset === "today" ? "" : " (" + fmtDayLong(start) + " – " + fmtDayLong(end) + ")");
+    return { start: start, end: end, label: label, all: preset === "all" };
+  }
+
+  function renderDashRangeBar() {
+    var html = '<div class="panel range-bar"><div class="filter-bar">';
+    html += '<div class="field-wrap"><label for="dash-preset">Rentang waktu</label><select id="dash-preset">';
+    DASH_PRESETS.forEach(function (p) {
+      html += '<option value="' + p[0] + '"' + (dashRange.preset === p[0] ? " selected" : "") + '>' + p[1] + '</option>';
+    });
+    html += '</select></div>';
+    if (dashRange.preset === "custom") {
+      html += '<div class="field-wrap"><label for="dash-from">Dari tanggal</label><input type="date" id="dash-from" value="' + escapeHtml(dashRange.from) + '"></div>';
+      html += '<div class="field-wrap"><label for="dash-to">Sampai tanggal</label><input type="date" id="dash-to" value="' + escapeHtml(dashRange.to) + '"></div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function bindDashRangeBar() {
+    document.getElementById("dash-preset").addEventListener("change", function (e) {
+      dashRange.preset = e.target.value;
+      if (dashRange.preset === "custom" && !dashRange.from) {
+        var r = resolveDashRange();
+        dashRange.from = dayKeyLocal(r.start);
+        dashRange.to = dayKeyLocal(r.end);
+      }
+      renderDashboard();
+    });
+    var fromEl = document.getElementById("dash-from");
+    var toEl = document.getElementById("dash-to");
+    if (fromEl) fromEl.addEventListener("change", function (e) { if (e.target.value) { dashRange.from = e.target.value; renderDashboard(); } });
+    if (toEl) toEl.addEventListener("change", function (e) { if (e.target.value) { dashRange.to = e.target.value; renderDashboard(); } });
+  }
+
   function renderDashboard() {
     var el = document.getElementById("view-dashboard");
-    var total = leads.length;
-    var resp = computeResponseStats();
-    var sources = computeSourceBreakdown();
-    var funnel = computeFunnel();
-    var lostCount = leads.filter(function (l) { return l.stage === "Lost"; }).length;
+    var range = resolveDashRange();
+    var needsHistory = !historyLoaded && (range.all || range.start < recentCutoff());
+    if (needsHistory) ensureHistoryLoaded();
+    var dashLeads = leads.filter(function (l) {
+      var d = new Date(l.createdAt);
+      return d >= range.start && d <= range.end;
+    });
+    var total = dashLeads.length;
+    var resp = computeResponseStats(dashLeads);
+    var sources = computeSourceBreakdown(dashLeads);
+    var funnel = computeFunnel(dashLeads);
+    var lostCount = dashLeads.filter(function (l) { return l.stage === "Lost"; }).length;
 
     var maxSourceCount = sources.length ? sources[0].count : 1;
 
@@ -1303,9 +1378,9 @@
     surveyCount = surveyCount ? surveyCount.count : 0;
 
     var html = "";
-    html += renderPageHeader("Dashboard", historyLoaded
-      ? "Ringkasan performa lead &amp; funnel dari semua lead tercatat"
-      : "Ringkasan performa lead &amp; funnel " + RECENT_DAYS + " hari terakhir (plus lead yang masih aktif)", "ph-add-dash");
+    html += renderPageHeader("Dashboard", "Ringkasan performa lead &amp; funnel · " + escapeHtml(range.label) +
+      (needsHistory ? " · memuat riwayat lama…" : ""), "ph-add-dash");
+    html += renderDashRangeBar();
     html += '<div class="stat-row">';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.total + '</span><span class="label">Total lead</span></div><div class="value mono">' + total + '</div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.check + '</span><span class="label">Sudah direspon</span></div><div class="value mono">' + resp.rate + '<small>%</small></div></div>';
@@ -1313,19 +1388,25 @@
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.clock + '</span><span class="label">Rata-rata waktu respon</span></div><div class="value mono">' + (resp.avgMinutes != null ? resp.avgMinutes : "—") + '<small> mnt</small></div></div>';
     html += '</div>';
 
-    var trendData = trendMode === "daily" ? aggregateDaily(14) : aggregateWeekly(8);
+    var rangeDays = Math.round((range.end - range.start) / 86400000);
+    var effectiveTrendMode = rangeDays > 366 ? "monthly"
+      : trendMode === "daily" && rangeDays > 62 ? "weekly" : trendMode;
+    var trendData = aggregateTrend(dashLeads, range.start, range.end, effectiveTrendMode);
     html += '<div class="panel">';
     html += '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">';
     html += '<h2 style="margin:0">Tren Lead Masuk</h2>';
     html += '<div class="chart-toggle"><button type="button" data-mode="daily" class="' + (trendMode === "daily" ? "active" : "") + '">Harian</button><button type="button" data-mode="weekly" class="' + (trendMode === "weekly" ? "active" : "") + '">Mingguan</button></div>';
     html += '</div>';
-    html += '<p class="hint">' + (trendMode === "daily" ? "14 hari terakhir" : "8 minggu terakhir, dimulai tiap Senin") + '</p>';
+    html += '<p class="hint">' + ({ daily: "Per hari", weekly: "Per minggu, dimulai tiap Senin", monthly: "Per bulan" })[effectiveTrendMode] +
+      (effectiveTrendMode !== trendMode
+        ? (effectiveTrendMode === "monthly" ? " — rentang lebih dari setahun otomatis ditampilkan per bulan" : " — rentang lebih dari 2 bulan otomatis ditampilkan per minggu")
+        : "") + '</p>';
     html += '<div class="table-scroll">' + renderTrendChart(trendData) + '</div>';
     html += '</div>';
 
     html += '<div class="panel">';
     html += '<h2>Distribusi Sumber Lead</h2>';
-    html += '<p class="hint">Persentase dari total ' + total + ' lead tercatat</p>';
+    html += '<p class="hint">Persentase dari ' + total + ' lead di rentang ini</p>';
     sources.forEach(function (s) {
       var pctWidth = Math.max(4, Math.round((s.count / maxSourceCount) * 100));
       html += '<div class="bar-row">';
@@ -1335,7 +1416,7 @@
     });
     html += '</div>';
 
-    var conv = computeSourceConversion();
+    var conv = computeSourceConversion(dashLeads);
     html += '<div class="panel">';
     html += '<h2>Conversion Rate per Sumber</h2>';
     html += '<p class="hint">Berapa persen lead dari tiap sumber yang berakhir Deal — bukan cuma volume, tapi kualitasnya</p>';
@@ -1347,8 +1428,8 @@
     html += '</tbody></table></div>';
     html += '</div>';
 
-    var minatBreakdown = computeFieldBreakdown("minat", 6);
-    var domisiliBreakdown = computeFieldBreakdown("domisili", 6);
+    var minatBreakdown = computeFieldBreakdown(dashLeads, "minat", 6);
+    var domisiliBreakdown = computeFieldBreakdown(dashLeads, "domisili", 6);
     var maxMinat = minatBreakdown.length ? Math.max.apply(null, minatBreakdown.map(function (x) { return x.count; })) : 1;
     var maxDomisili = domisiliBreakdown.length ? Math.max.apply(null, domisiliBreakdown.map(function (x) { return x.count; })) : 1;
 
@@ -1416,6 +1497,8 @@
     var gotoBtn = document.getElementById("goto-all");
     if (gotoBtn) gotoBtn.addEventListener("click", function () { switchView("all"); });
     bindAddLeadShortcut("ph-add-dash");
+
+    bindDashRangeBar();
 
     el.querySelectorAll(".chart-toggle button").forEach(function (btn) {
       btn.addEventListener("click", function () {
