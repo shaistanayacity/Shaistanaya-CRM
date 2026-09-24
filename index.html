@@ -459,7 +459,16 @@
   .strategy-avoid { font-size: 0.78rem; color: var(--danger); }
   .strategy-cluster { background: var(--panel); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; }
   .strategy-cluster .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
-  .cluster-note-text { font-size: 0.82rem; margin-bottom: 7px; line-height: 1.4; }
+  .cluster-note-text { font-size: 0.82rem; margin-bottom: 9px; line-height: 1.45; }
+  .cluster-note-text p { margin: 0 0 6px; }
+  .cluster-note-text ul { margin: 2px 0 8px; padding-left: 18px; }
+  .cluster-note-text li { margin-bottom: 3px; }
+  .cluster-note-text .note-label { font-weight: 700; }
+  .cluster-note-text .note-label.block { display: block; margin-top: 2px; }
+  .cluster-note-edit { display: flex; flex-direction: column; gap: 8px; }
+  .cluster-note-edit textarea { min-height: 190px; font-size: 0.84rem; line-height: 1.45; }
+  .cluster-note-edit .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .cluster-note-edit .tip { color: var(--muted); font-size: 0.72rem; margin-left: auto; }
 
   label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0 0 4px; }
   label .opt { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: 0.75; }
@@ -812,17 +821,46 @@
     }
   };
 
+  // Light formatting for cluster notes: line breaks, "- " / "• " bullets,
+  // and a short "Label:" at the start of a line shown in bold.
+  function formatNote(text) {
+    var html = "", listOpen = false;
+    function closeList() { if (listOpen) { html += "</ul>"; listOpen = false; } }
+    String(text).split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { closeList(); return; }
+      var bullet = line.match(/^[-•*]\s+(.*)$/);
+      if (bullet) {
+        if (!listOpen) { html += "<ul>"; listOpen = true; }
+        html += "<li>" + escapeHtml(bullet[1]) + "</li>";
+        return;
+      }
+      closeList();
+      var label = line.match(/^([^:]{1,24}):\s*(.*)$/);
+      if (label && !/^https?$/i.test(label[1])) {
+        html += label[2]
+          ? '<p><span class="note-label">' + escapeHtml(label[1]) + ':</span> ' + escapeHtml(label[2]) + "</p>"
+          : '<span class="note-label block">' + escapeHtml(label[1]) + ":</span>";
+      } else {
+        html += "<p>" + escapeHtml(line) + "</p>";
+      }
+    });
+    closeList();
+    return html;
+  }
+
   function renderClusterFocus(minat) {
     if (!minat || minat === "—") return "";
     var note = clusterNotes[minat];
     var html = '<div class="strategy-cluster">';
     html += '<div class="k">Fokus jual — ' + escapeHtml(minat) + '</div>';
     if (editingCluster === minat) {
-      html += '<div class="note-add"><input type="text" value="' + escapeHtml(note || "") + '" placeholder="cth. Tonjolkan lokasi dekat tol, harga mulai Rp Xjt" data-cluster-note-input="' + escapeHtml(minat) + '">';
-      html += '<button type="button" class="ghost" data-action="save-cluster-note" data-minat="' + escapeHtml(minat) + '">Simpan</button>';
-      html += '<button type="button" class="ghost" data-action="cancel-cluster-note" data-minat="' + escapeHtml(minat) + '">Batal</button></div>';
+      html += '<div class="cluster-note-edit"><textarea placeholder="Target: …&#10;Direspon:&#10;- poin pertama&#10;- poin kedua" data-cluster-note-input="' + escapeHtml(minat) + '">' + escapeHtml(note || "") + '</textarea>';
+      html += '<div class="actions"><button type="button" class="ghost" data-action="save-cluster-note" data-minat="' + escapeHtml(minat) + '">Simpan</button>';
+      html += '<button type="button" class="ghost" data-action="cancel-cluster-note" data-minat="' + escapeHtml(minat) + '">Batal</button>';
+      html += '<span class="tip">Enter = baris baru · awali "- " untuk bullet · "Judul:" di awal baris jadi tebal</span></div></div>';
     } else if (note) {
-      html += '<div class="cluster-note-text">' + escapeHtml(note) + '</div>';
+      html += '<div class="cluster-note-text">' + formatNote(note) + '</div>';
       html += '<button type="button" class="ghost" data-action="edit-cluster-note" data-minat="' + escapeHtml(minat) + '">Ubah catatan</button>';
     } else {
       html += '<div class="hint" style="margin:0 0 8px">Belum ada catatan strategi khusus untuk ' + escapeHtml(minat) + '. Tambahkan sekali, otomatis kepakai di semua lead yang minatnya sama.</div>';
@@ -1723,7 +1761,7 @@
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
         var minat = btn.getAttribute("data-minat");
-        var input = root.querySelector('input[data-cluster-note-input="' + minat + '"]');
+        var input = root.querySelector('[data-cluster-note-input="' + minat + '"]');
         var text = input.value.trim();
         if (text) clusterNotes[minat] = text; else delete clusterNotes[minat];
         persistClusterNote(minat, text);
