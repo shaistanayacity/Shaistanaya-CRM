@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  try {
+    var savedTheme = localStorage.getItem("shaistanaya_theme");
+    if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+  } catch (e) { /* storage unavailable: follow system theme */ }
+</script>
 <title>Shaistanaya CRM</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/logo-192.png">
@@ -28,6 +34,7 @@
     --warning-soft: #FCF0D8;
     --danger: #D1445B;
     --danger-soft: #FCE4E9;
+    color-scheme: light;
     --radius: 16px;
     --radius-md: 10px;
     --radius-pill: 999px;
@@ -52,6 +59,7 @@
       --warning-soft: #3A2C11;
       --danger: #F27087;
       --danger-soft: #3A1B22;
+      color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
@@ -71,6 +79,7 @@
     --warning-soft: #3A2C11;
     --danger: #F27087;
     --danger-soft: #3A1B22;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html { scroll-padding-top: var(--safe-t); }
@@ -436,7 +445,7 @@
   .detail .notes li:last-child { border-bottom: none; }
   .detail .notes li .t { color: var(--muted); font-size: 0.7rem; margin-right: 6px; }
   .detail .note-add { display: flex; gap: 6px; grid-column: 1/-1; }
-  .detail .stage-row { grid-column: 1/-1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .detail .stage-row { grid-column: 1/-1; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .detail .strategy-wrap { grid-column: 1/-1; }
   .strategy-box { background: var(--accent-soft); border-radius: var(--radius-md); padding: 12px 14px; }
   .strategy-head { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
@@ -454,7 +463,7 @@
 
   label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0 0 4px; }
   label .opt { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: 0.75; }
-  select, input[type=text], input[type=tel], textarea {
+  select, input[type=text], input[type=tel], input[type=date], input[type=datetime-local], textarea {
     width: 100%;
     font: inherit;
     font-size: 0.9rem;
@@ -527,6 +536,50 @@
     border-radius: var(--radius-md);
     cursor: pointer;
   }
+  button.danger {
+    appearance: none;
+    border: 1px solid var(--danger);
+    background: transparent;
+    color: var(--danger);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+  button.danger:hover { background: var(--danger-soft); }
+  .brand-tools { margin-left: auto; display: flex; gap: 6px; align-self: center; }
+  .icon-btn {
+    appearance: none;
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    padding: 0;
+  }
+  .icon-btn:hover { color: var(--ink); }
+  .theme-row {
+    appearance: none;
+    display: flex; align-items: center; gap: 7px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 0 0;
+    border: none;
+    border-top: 1px solid var(--line);
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-align: left;
+  }
+  .theme-row:hover { color: var(--ink); }
+  .icon-btn[hidden] { display: none; }
+  @media (min-width: 960px) { .icon-btn.mobile-only { display: none; } }
   .toast {
     position: fixed;
     left: 50%;
@@ -612,6 +665,12 @@
         <h1 class="display">Shaistanaya CRM</h1>
         <div class="sub">Log Lead &amp; CS · Digital Marketing</div>
       </div>
+      <div class="brand-tools">
+        <button type="button" class="icon-btn mobile-only theme-toggle"></button>
+        <button type="button" class="icon-btn mobile-only" id="logout-btn-m" hidden title="Keluar" aria-label="Keluar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6"/><path d="M10.5 11l3-3-3-3"/><path d="M13.5 8H6"/></svg>
+        </button>
+      </div>
     </div>
     <div class="menu-label">Main Menu</div>
     <nav class="tabs">
@@ -634,6 +693,7 @@
     </nav>
     <div class="sidebar-foot">
       <div>Target respon 15 menit</div>
+      <button type="button" class="theme-row theme-toggle"></button>
       <div class="account" id="account" hidden><span class="who" id="account-email"></span><button type="button" id="logout-btn">Keluar</button></div>
     </div>
   </aside>
@@ -968,6 +1028,29 @@
     } else {
       saveStateLocal(leads);
     }
+  }
+
+  function deleteLead(lead) {
+    var idx = leads.indexOf(lead);
+    if (idx === -1) return;
+    leads.splice(idx, 1);
+    if (expandedId === lead.id) expandedId = null;
+    refreshAll();
+    if (!db) {
+      saveStateLocal(leads);
+      showToast("Lead dihapus");
+      return;
+    }
+    db.from("leads").delete().eq("id", lead.id).select("id").then(function (res) {
+      if (res.error || !res.data || !res.data.length) {
+        // Put it back so the screen matches the server.
+        leads.splice(Math.min(idx, leads.length), 0, lead);
+        refreshAll();
+        showToast("Gagal menghapus lead" + (res.error ? " (" + (res.error.code || res.error.message) + ")" : ""));
+      } else {
+        showToast("Lead dihapus");
+      }
+    });
   }
 
   function persistClusterNote(minat, note) {
@@ -1558,6 +1641,7 @@
       html += '<option value="' + s + '"' + (l.stage === s ? " selected" : "") + '>' + STAGE_LABEL[s] + '</option>';
     });
     html += '</select></label>';
+    html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
     html += '</div>';
 
     html += '<div class="strategy-wrap">' + buildStrategyHtml(l) + '</div>';
@@ -1602,6 +1686,16 @@
         persistLead(lead);
         refreshAll();
         showToast("Tahap diperbarui");
+      });
+    });
+    root.querySelectorAll('button[data-action="delete-lead"]').forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute("data-id");
+        var lead = leads.find(function (x) { return x.id === id; });
+        if (!lead) return;
+        if (!window.confirm("Hapus lead " + lead.nama + " (" + lead.telp + ")?\n\nData dan semua catatannya akan hilang permanen.")) return;
+        deleteLead(lead);
       });
     });
     root.querySelectorAll('button[data-action="addnote"]').forEach(function (btn) {
@@ -2034,6 +2128,7 @@
   async function startWithSupabase(client, session) {
     document.getElementById("login-overlay").classList.remove("show");
     document.getElementById("account").hidden = false;
+    document.getElementById("logout-btn-m").hidden = false;
     document.getElementById("account-email").textContent = session.user.email || "";
     try {
       db = client;
@@ -2070,6 +2165,41 @@
     };
   }
 
+  // ---------- Theme ----------
+
+  var THEME_KEY = "shaistanaya_theme";
+  var THEME_ORDER = ["auto", "light", "dark"];
+  var THEME_META = {
+    auto: { label: "Tema: otomatis (ikut perangkat)", short: "Tema otomatis", icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg>' },
+    light: { label: "Tema: terang", short: "Tema terang", icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>' },
+    dark: { label: "Tema: gelap", short: "Tema gelap", icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z"/></svg>' }
+  };
+  function currentTheme() {
+    var t = document.documentElement.getAttribute("data-theme");
+    return t === "light" || t === "dark" ? t : "auto";
+  }
+  function renderThemeButton() {
+    var meta = THEME_META[currentTheme()];
+    document.querySelectorAll(".theme-toggle").forEach(function (btn) {
+      btn.innerHTML = meta.icon + (btn.classList.contains("theme-row") ? "<span>" + meta.short + " · ganti</span>" : "");
+      btn.title = meta.label + " — klik untuk ganti";
+      btn.setAttribute("aria-label", meta.label + ", klik untuk ganti");
+    });
+  }
+  function cycleTheme() {
+    var next = THEME_ORDER[(THEME_ORDER.indexOf(currentTheme()) + 1) % THEME_ORDER.length];
+    if (next === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", next);
+    try {
+      if (next === "auto") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, next);
+    } catch (e) { /* storage unavailable: theme still applies this session */ }
+    renderThemeButton();
+    showToast(THEME_META[next].label);
+  }
+  document.querySelectorAll(".theme-toggle").forEach(function (btn) { btn.addEventListener("click", cycleTheme); });
+  renderThemeButton();
+
   async function init() {
     var cfg = window.SHAISTANAYA_CONFIG || {};
     if (!cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase) {
@@ -2077,10 +2207,12 @@
       return;
     }
     var client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-    document.getElementById("logout-btn").addEventListener("click", async function () {
+    var logout = async function () {
       await client.auth.signOut();
       location.reload();
-    });
+    };
+    document.getElementById("logout-btn").addEventListener("click", logout);
+    document.getElementById("logout-btn-m").addEventListener("click", logout);
     var sessionRes = await client.auth.getSession();
     var session = sessionRes.data && sessionRes.data.session;
     if (session) startWithSupabase(client, session);
