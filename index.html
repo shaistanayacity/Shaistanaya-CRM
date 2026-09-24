@@ -10,9 +10,8 @@
   } catch (e) { /* storage unavailable: follow system theme */ }
 </script>
 <title>Shaistanaya CRM</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/logo-192.png">
-<link rel="apple-touch-icon" href="assets/logo-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -119,8 +118,7 @@
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-logo {
     flex: none;
-    width: 40px; height: 40px;
-    border-radius: 50%;
+    height: 40px; width: auto;
     display: block;
   }
   .brand-text h1 {
@@ -195,7 +193,7 @@
       flex-direction: column;
       gap: 4px;
     }
-    .brand-logo { width: 50px; height: 50px; }
+    .brand-logo { height: 48px; }
     .brand-text h1 { font-size: 1.15rem; }
     .menu-label {
       display: block;
@@ -635,8 +633,16 @@
     padding: 26px 22px;
     box-shadow: 0 1px 2px rgba(20,20,20,0.04);
   }
-  .login-card .brand { margin-bottom: 18px; }
-  .login-card .brand-logo { width: 60px; height: 60px; }
+  .login-logo { text-align: center; margin: 0 0 22px; }
+  .login-logo img { width: 190px; height: auto; display: block; margin: 0 auto 10px; }
+  .login-logo .sub { color: var(--muted); font-size: 0.82rem; }
+  .logo-dark { display: none !important; }
+  :root[data-theme="dark"] .logo-light { display: none !important; }
+  :root[data-theme="dark"] .logo-dark { display: block !important; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .logo-light { display: none !important; }
+    :root:not([data-theme="light"]) .logo-dark { display: block !important; }
+  }
   .login-card input[type=email], .login-card input[type=password] {
     width: 100%;
     font: inherit;
@@ -669,7 +675,7 @@
 <div id="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <img class="brand-logo" src="assets/logo-192.png" alt="Logo Shaistanaya">
+      <img class="brand-logo" src="assets/logo-mark.png" alt="Logo Shaistanaya City">
       <div class="brand-text">
         <h1 class="display">Shaistanaya CRM</h1>
         <div class="sub">Log Lead &amp; CS · Digital Marketing</div>
@@ -719,12 +725,11 @@
 
 <div class="login-overlay" id="login-overlay">
   <form class="login-card" id="login-form">
-    <div class="brand">
-      <img class="brand-logo" src="assets/logo-192.png" alt="Logo Shaistanaya">
-      <div class="brand-text">
-        <h1 class="display">Shaistanaya CRM</h1>
-        <div class="sub">Masuk untuk melihat &amp; mencatat lead</div>
-      </div>
+    <div class="login-logo">
+      <img class="logo-light" src="assets/logo-full.png" alt="Shaistanaya City">
+      <img class="logo-dark" src="assets/logo-full-dark.png" alt="Shaistanaya City">
+      <h1 class="display" style="font-size:1.05rem;margin:4px 0 2px">CRM · Log Lead</h1>
+      <div class="sub">Masuk untuk melihat &amp; mencatat lead</div>
     </div>
     <div class="field-wrap"><label for="login-email">Email</label><input type="email" id="login-email" autocomplete="username" required></div>
     <div class="field-wrap"><label for="login-password">Password</label><input type="password" id="login-password" autocomplete="current-password" required></div>
