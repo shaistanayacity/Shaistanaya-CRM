@@ -1227,7 +1227,9 @@
     return arr;
   }
   function computeSourceConversion(src) {
+    // Always list every channel, even with no leads yet in the range.
     var groups = {};
+    SOURCE_GROUPS.forEach(function (g) { groups[g.group] = { total: 0, deal: 0 }; });
     src.forEach(function (l) {
       var g = sourceGroupOf(l.source);
       if (!groups[g]) groups[g] = { total: 0, deal: 0 };
@@ -1235,8 +1237,8 @@
       if (l.stage === "Deal") groups[g].deal++;
     });
     return Object.keys(groups).map(function (g) {
-      return { name: g, total: groups[g].total, deal: groups[g].deal, rate: groups[g].total ? Math.round((groups[g].deal / groups[g].total) * 100) : 0 };
-    }).sort(function (a, b) { return b.rate - a.rate; });
+      return { name: g === "—" ? "Belum diketahui" : g, total: groups[g].total, deal: groups[g].deal, rate: groups[g].total ? Math.round((groups[g].deal / groups[g].total) * 100) : 0 };
+    }).sort(function (a, b) { return b.rate - a.rate || b.total - a.total; });
   }
   function computeFieldBreakdown(src, field, cap) {
     var groups = {};
@@ -1580,7 +1582,7 @@
     html += '<div class="table-scroll"><table class="leads"><thead><tr><th>Sumber</th><th>Total Lead</th><th>Deal</th><th>Conversion</th></tr></thead><tbody>';
     conv.forEach(function (c, i) {
       html += '<tr><td>' + escapeHtml(c.name) + (i === 0 && c.rate > 0 ? ' <span class="badge s-deal">Tertinggi</span>' : '') + '</td>';
-      html += '<td class="mono">' + c.total + '</td><td class="mono">' + c.deal + '</td><td class="mono">' + c.rate + '%</td></tr>';
+      html += '<td class="mono">' + c.total + '</td><td class="mono">' + c.deal + '</td><td class="mono">' + (c.total ? c.rate + '%' : '—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
     html += '</div>';
