@@ -459,7 +459,14 @@
   .strategy-cluster .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
   .cluster-note-text { font-size: 0.82rem; margin-bottom: 9px; line-height: 1.45; }
   .cluster-note-text p { margin: 0 0 6px; }
-  .cluster-note-text ul { margin: 2px 0 8px; padding-left: 18px; }
+  .cluster-note-text ul, .cluster-note-text ol { margin: 2px 0 8px; padding-left: 18px; }
+  .cluster-note-text ol { padding-left: 24px; }
+  .cluster-note-text li strong { font-weight: 600; }
+  .cluster-note-text .note-label.block + ol, .cluster-note-text .note-label.block + ul { margin-top: 4px; }
+  .usp-panel .strategy-cluster { background: var(--panel-sunken); }
+  .usp-panel .cluster-note-text { font-size: 0.86rem; }
+  .usp-panel .cluster-note-text .note-label.block { margin-top: 14px; color: var(--accent); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .usp-panel .cluster-note-text .note-label.block:first-child { margin-top: 0; }
   .cluster-note-text li { margin-bottom: 3px; }
   .cluster-note-text .note-label { font-weight: 700; }
   .cluster-note-text .note-label.block { display: block; margin-top: 2px; }
@@ -829,18 +836,39 @@
   // Light formatting for cluster notes: line breaks, "- " / "• " bullets,
   // and a short "Label:" at the start of a line shown in bold.
   function formatNote(text) {
-    var html = "", listOpen = false;
-    function closeList() { if (listOpen) { html += "</ul>"; listOpen = false; } }
+    var html = "", listOpen = null;
+    function openList(tag) {
+      if (listOpen === tag) return;
+      closeList();
+      html += "<" + tag + ">";
+      listOpen = tag;
+    }
+    function closeList() { if (listOpen) { html += "</" + listOpen + ">"; listOpen = null; } }
     String(text).split(/\r?\n/).forEach(function (raw) {
       var line = raw.trim();
       if (!line) { closeList(); return; }
       var bullet = line.match(/^[-•*]\s+(.*)$/);
       if (bullet) {
-        if (!listOpen) { html += "<ul>"; listOpen = true; }
+        openList("ul");
         html += "<li>" + escapeHtml(bullet[1]) + "</li>";
         return;
       }
+      // "12. Point — explanation": keep the number, bold the point.
+      var numbered = line.match(/^(\d{1,3})[.)]\s+(.*)$/);
+      if (numbered) {
+        openList("ol");
+        var parts = numbered[2].split(" — ");
+        var body = parts.length > 1
+          ? "<strong>" + escapeHtml(parts[0]) + "</strong> — " + escapeHtml(parts.slice(1).join(" — "))
+          : escapeHtml(numbered[2]);
+        html += '<li value="' + numbered[1] + '">' + body + "</li>";
+        return;
+      }
       closeList();
+      if (/:$/.test(line)) {
+        html += '<span class="note-label block">' + escapeHtml(line) + "</span>";
+        return;
+      }
       var label = line.match(/^([^:]{1,24}):\s*(.*)$/);
       if (label && !/^https?$/i.test(label[1])) {
         html += label[2]
@@ -854,11 +882,11 @@
     return html;
   }
 
-  function renderClusterFocus(minat) {
+  function renderClusterFocus(minat, title) {
     if (!minat || minat === "—") return "";
     var note = clusterNotes[minat];
     var html = '<div class="strategy-cluster">';
-    html += '<div class="k">Fokus jual — ' + escapeHtml(minat) + '</div>';
+    if (title !== "") html += '<div class="k">' + (title == null ? "Fokus jual — " + escapeHtml(minat) : escapeHtml(title)) + '</div>';
     if (editingCluster === minat) {
       html += '<div class="cluster-note-edit"><textarea placeholder="Target: …&#10;Direspon:&#10;- poin pertama&#10;- poin kedua" data-cluster-note-input="' + escapeHtml(minat) + '">' + escapeHtml(note || "") + '</textarea>';
       html += '<div class="actions"><button type="button" class="ghost" data-action="save-cluster-note" data-minat="' + escapeHtml(minat) + '">Simpan</button>';
@@ -1112,7 +1140,10 @@
   var editingCluster = null;
 
   var CLUSTER_NOTES_KEY = "shaistanaya_cluster_notes_v1";
+  // Stored alongside the per-unit notes so the team can edit it from the Playbook.
+  var USP_KEY = "USP Shaistanaya City";
   var CLUSTER_NOTES_SEED = {
+    "USP Shaistanaya City": "Lokasi & Aksesibilitas Kawasan:\n1. Lokasi strategis di Sidoarjo Kota — bukan di pinggiran, tapi di tengah akses kota\n2. 1 menit ke Puskesmas Sidodadi — akses kesehatan darurat sangat dekat\n3. 8 menit ke RS Delta Surya Sidoarjo — rumah sakit besar terjangkau\n4. 9 menit ke Gate Tol Sidoarjo (ruas Surabaya–Porong) — akses tol cepat buat yang komuter ke Surabaya\n5. 8 menit ke Lippo Plaza & 10 menit ke Suncity Mall — dua pusat perbelanjaan besar dalam jangkauan\n6. 5 menit ke Pasar Suko, dekat juga ke Pasar Modern Sidodadi — kebutuhan harian gak perlu keluar jauh\n\nKeamanan & Infrastruktur Kawasan:\n7. One Gate System — akses keluar-masuk kawasan terkontrol\n8. CCTV di area publik kawasan\n9. Security 24 jam\n10. Bebas banjir — klaim konkret yang bisa jadi pembeda tajam vs kawasan lain di Sidoarjo yang rawan banjir\n11. Row jalan lebar di dalam kawasan — mobil berpapasan gak sempit\n12. Internet cable coverage sudah tersedia di kawasan — gak perlu urus infrastruktur sendiri\n\nFasilitas Lifestyle Kawasan:\n13. Masjid dalam kawasan\n14. Playground, outdoor gym, basketball field, BBQ pit, hangout garden — kawasan dirancang jadi tempat hidup, bukan sekadar cluster rumah\n\nDesain & Fitur Unit:\n15. Smartdoor Lock jadi standar di semua unit, kedua cluster — bukan opsional/tambahan\n16. Dua pilihan tema desain dalam satu kawasan besar: American Style (Montana) & Scandinavian Contemporary (Sierra) — fleksibel buat selera berbeda tanpa pindah kawasan\n17. Cluster Montana: fitur Mezzanine di sejumlah tipe — ruang tambahan fleksibel (santai/workspace) yang jarang ada di rumah sekelas\n18. Cluster Sierra: fitur Private Pool* (unit tertentu) & Balcony — fitur baru yang jadi pembeda kuat di segmen hunian menengah-atas Sidoarjo\n\nStruktur Harga & Pembiayaan:\n19. Entry price kompetitif — tipe Gwen di Montana mulai ~598 jutaan cash, jadi pintu masuk yang realistis buat lead budget terbatas\n20. Skema pembayaran fleksibel — Hard Cash / KPR / Tunai Bertahap, didukung 5 bank partner termasuk opsi syariah (BSI, BSN)\n\nPembiayaan Standar (bukan promo musiman):\n21. DP 0% + Free Biaya AJB, BBN, BPHTB — skema pembiayaan standar perusahaan, terpisah dari promo Sweet September (syarat & ketentuan berlaku khusus untuk komponen Notaris/KPR)\n\nKepercayaan & Developer:\n22. Dikembangkan & dibangun langsung oleh PT Neo Pudji Jaya sebagai developer sekaligus general contractor — satu tangan dari desain sampai bangun, bukan dilempar ke kontraktor pihak ketiga\n\nSpesifikasi Bangunan (standar semua unit):\n23. Dinding bata ringan (hebel) — lebih presisi, kedap suara & panas lebih baik dibanding bata merah konvensional\n24. Atap genteng beton flat dengan rangka baja ringan — tahan lama, minim perawatan dibanding genteng tanah liat\n25. Rangka plafon hollow galvalum — anti rayap, bukan rangka kayu yang rawan lapuk\n26. Pintu Engineer Door + kusen aluminium powder coating — material presisi tahan lama, bukan kusen kayu konvensional\n27. Instalasi PDAM, listrik PLN, internet & TV kabel sudah lengkap per unit saat serah terima — gak perlu urus sambungan sendiri\n\nSpesifikasi Premium Khusus Sierra (pembeda vs Montana):\n28. Pondasi Sierra kombinasi Batu Kali + Strauss Pile — struktur ekstra kuat untuk hunian 2 lantai (Montana hanya Batu Kali)\n29. Granite tile lantai Sierra 80x80 vs Montana 60x60 — kesan ruang lebih premium & minim sambungan nat\n30. Kamar mandi Sierra pakai keramik dinding 30x60 & lantai 60x60, lebih besar dari Montana (25x40 & 25x25) — finishing kelas atas",
     "Bianca Garden": "Entry point paling terjangkau di Cluster Sierra — tetap dapat ciri khas Sierra (2 lantai, balkon, desain Scandinavian Contemporary) tapi versi garden, tanpa private pool. Tawarkan ke lead yang mau branding Sierra tapi budget lebih ketat dibanding varian Pool. Cek pricelist terbaru buat harga & spesifikasi pasti.",
     "Bianca Deluxe": "Versi upgrade dari Bianca Garden — biasanya lebih luas/spesifikasi lebih tinggi. Pas ditawarkan ke lead yang udah cocok sama desain Bianca tapi mau ruang lebih lega, belum tentu perlu pindah ke family Arnica atau varian Pool. Konfirmasi selisih harga & luas ke Bianca Garden lewat pricelist sebelum kasih angka ke calon pembeli.",
     "Arnica Garden": "Alternatif desain dari family Bianca — tampilan & layout beda meski di rentang harga yang mirip. Tawarkan ke lead yang udah lihat Bianca tapi belum cocok secara desain, sebagai opsi kedua di Sierra sebelum ke varian Pool.",
@@ -2025,6 +2056,11 @@
     leads.forEach(function (l) { counts[l.stage] = (counts[l.stage] || 0) + 1; });
 
     var html = renderPageHeader("Playbook", "Pendekatan yang disarankan di tiap tahap — jadi CS tau strateginya, bukan cuma status leadnya", null);
+    html += '<div class="panel usp-panel">';
+    html += '<h2>' + escapeHtml(USP_KEY) + '</h2>';
+    html += '<p class="hint">Keunggulan kawasan &amp; unit buat bahan jawaban ke calon pembeli — bisa diubah kalau ada info baru</p>';
+    html += renderClusterFocus(USP_KEY, "");
+    html += '</div>';
     STAGES.concat(["Lost"]).forEach(function (stage) {
       var s = STRATEGY[stage];
       html += '<div class="panel">';
