@@ -421,6 +421,22 @@
   .badge.s-janjian { background: var(--warning-soft); color: var(--warning); }
   .badge.s-deal { background: var(--success-soft); color: var(--success); }
   .badge.s-lost { background: var(--danger-soft); color: var(--danger); }
+  .badge.t-hot { background: var(--danger); color: var(--panel); }
+  .badge.t-warm { background: var(--warning-soft); color: var(--warning); }
+  .badge.t-cold { background: var(--panel-sunken); color: var(--muted); border: 1px solid var(--line-strong); }
+  .badge.t-none { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
+  .detail .signals { grid-column: 1/-1; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--panel); }
+  .signals-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .signals-head .k { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .signals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
+  .signal-group .sg-title { font-size: 0.76rem; font-weight: 700; margin-bottom: 6px; }
+  .signal-group .sg-title span { font-weight: 400; color: var(--muted); }
+  .sg-strong .sg-title { color: var(--danger); }
+  .sg-medium .sg-title { color: var(--warning); }
+  .sg-negative .sg-title { color: var(--muted); }
+  .signal-group .checkbox-label { font-size: 0.8rem; align-items: flex-start; margin-bottom: 6px; line-height: 1.35; }
+  .signal-group .checkbox-label input { margin-top: 1px; flex: none; }
+  @media (max-width: 800px) { .signals-grid { grid-template-columns: 1fr; } }
   .sla-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
   .sla-good { background: var(--success); }
   .sla-mid { background: var(--warning); }
@@ -672,7 +688,7 @@
     .form-grid { grid-template-columns: 1fr; }
     .filter-bar { grid-template-columns: 1fr 1fr; }
     .detail { grid-template-columns: 1fr; }
-    table.leads { min-width: 560px; }
+    table.leads { min-width: 640px; }
     .brand-text h1 { font-size: 1.05rem; }
     .page-title { font-size: 1.28rem; }
   }
@@ -1070,7 +1086,8 @@
       minat: l.minat,
       stage: l.stage,
       loss_rank: l.lossRank,
-      notes: l.notes || []
+      notes: l.notes || [],
+      signals: l.signals || []
     };
   }
   function rowToLead(r) {
@@ -1085,7 +1102,8 @@
       minat: r.minat,
       stage: r.stage,
       lossRank: r.loss_rank,
-      notes: r.notes || []
+      notes: r.notes || [],
+      signals: r.signals || []
     };
   }
 
@@ -1187,7 +1205,48 @@
   var historyLoaded = true; // set false when a Supabase load skipped old closed leads
   var historyLoading = null;
 
-  var filters = { source: "", stage: "", minat: "", q: "", dateFrom: "", dateTo: "" };
+  // ---------- Lead temperature ----------
+  // CS ticks the signals they see; temperature follows from these rules, in order:
+  // any negative signal -> Cold, else any strong signal -> Hot, else any medium -> Warm.
+  var SIGNAL_GROUPS = [
+    { level: "strong", title: "Sinyal kuat", hint: "1 saja sudah Hot", items: [
+      ["cicilan", "Tanya cicilan spesifik (DP, tenor)"],
+      ["kavling", "Tanya posisi kavling / unit yang masih tersedia"],
+      ["booking", "Tanya cara booking / booking fee"],
+      ["survey", "Minta survey / sudah janjian survey"],
+      ["beli3bln", "Rencana beli dalam 3 bulan"]
+    ] },
+    { level: "medium", title: "Sinyal sedang", hint: "tertarik, belum mendesak", items: [
+      ["budget", "Budget jelas & cocok dengan harga unit"],
+      ["tipe", "Sudah sebut cluster / tipe yang diminati"],
+      ["pricelist", "Minta pricelist / brosur"],
+      ["aktif", "Aktif membalas chat (maks. 1 hari)"]
+    ] },
+    { level: "negative", title: "Sinyal negatif", hint: "langsung Cold", items: [
+      ["noreply", "Tidak membalas setelah 3x follow up"],
+      ["budgetrendah", "Budget jauh di bawah harga termurah (Gwen ~598 jt)"],
+      ["lihat2", "Cuma lihat-lihat / beli lebih dari 6 bulan lagi"]
+    ] }
+  ];
+  var SIGNAL_LEVEL = {};
+  SIGNAL_GROUPS.forEach(function (g) { g.items.forEach(function (it) { SIGNAL_LEVEL[it[0]] = g.level; }); });
+  var TEMP_ORDER = ["Hot", "Warm", "Cold", "Belum dinilai"];
+  var TEMP_CLASS = { "Hot": "t-hot", "Warm": "t-warm", "Cold": "t-cold", "Belum dinilai": "t-none" };
+
+  function leadTemperature(lead) {
+    var levels = {};
+    (lead.signals || []).forEach(function (id) { if (SIGNAL_LEVEL[id]) levels[SIGNAL_LEVEL[id]] = true; });
+    if (levels.negative) return "Cold";
+    if (levels.strong) return "Hot";
+    if (levels.medium) return "Warm";
+    return "Belum dinilai";
+  }
+  function tempBadge(lead) {
+    var t = leadTemperature(lead);
+    return '<span class="badge ' + TEMP_CLASS[t] + '">' + t + '</span>';
+  }
+
+  var filters = { source: "", stage: "", minat: "", temp: "", q: "", dateFrom: "", dateTo: "" };
   var trendMode = "daily";
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
@@ -1293,6 +1352,7 @@
         } else if (l.stage !== filters.stage) return false;
       }
       if (filters.minat && l.minat !== filters.minat) return false;
+      if (filters.temp && leadTemperature(l) !== filters.temp) return false;
       if (filters.dateFrom || filters.dateTo) {
         var leadDay = dayKeyLocal(new Date(l.createdAt));
         if (filters.dateFrom && leadDay < filters.dateFrom) return false;
@@ -1359,7 +1419,7 @@
   }
   function leadsToCsv(list) {
     var headers = ["Tanggal", "Jam Masuk", "Jam Respon", "Sumber", "Nama", "No Telp", "Domisili",
-      "Minat/Unit", "Tahap", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir"];
+      "Minat/Unit", "Tahap", "Temperatur", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir"];
     var rows = [headers.map(csvEscape).join(",")];
     list.forEach(function (l) {
       var d = new Date(l.createdAt);
@@ -1368,7 +1428,7 @@
       rows.push([
         tanggal, fmtTime(l.createdAt), l.respondedAt ? fmtTime(l.respondedAt) : "",
         l.source, l.nama, l.telp, l.domisili, l.minat,
-        STAGE_LABEL[l.stage] || l.stage, daysSinceContact(l), followUpCount(l), catatanTerakhir
+        STAGE_LABEL[l.stage] || l.stage, leadTemperature(l), daysSinceContact(l), followUpCount(l), catatanTerakhir
       ].map(csvEscape).join(","));
     });
     return rows.join("\r\n");
@@ -1683,7 +1743,7 @@
   function renderLeadsTable(list) {
     if (!list.length) return '<div class="empty">Belum ada lead tercatat.</div>';
     var html = '<div class="table-scroll"><table class="leads"><thead><tr>';
-    html += '<th>Waktu</th><th>Sumber</th><th>Nama</th><th>Respon</th><th>Kontak terakhir</th><th>Tahap</th>';
+    html += '<th>Waktu</th><th>Sumber</th><th>Nama</th><th>Respon</th><th>Kontak terakhir</th><th>Tahap</th><th>Temperatur</th>';
     html += '</tr></thead><tbody>';
     list.forEach(function (l) {
       var badgeClass = STAGE_CLASS[l.stage] || "s-masuk";
@@ -1695,9 +1755,10 @@
       html += '<td><span class="sla-dot ' + slaClass(l) + '"></span>' + (l.respondedAt ? fmtTime(l.respondedAt) : "belum") + '</td>';
       html += '<td' + (stale ? ' class="stale-cell"' : '') + '>' + (stale ? '<span class="sla-dot sla-bad"></span>' : '') + contactLabel(l) + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + STAGE_LABEL[l.stage] + '</span></td>';
+      html += '<td>' + tempBadge(l) + '</td>';
       html += '</tr>';
       if (expandedId === l.id) {
-        html += '<tr class="detail-row"><td colspan="6">' + renderDetail(l) + '</td></tr>';
+        html += '<tr class="detail-row"><td colspan="7">' + renderDetail(l) + '</td></tr>';
       }
     });
     html += '</tbody></table></div>';
@@ -1720,6 +1781,7 @@
     html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
     html += '</div>';
 
+    html += renderSignalChecklist(l);
     html += '<div class="strategy-wrap">' + buildStrategyHtml(l) + '</div>';
 
     html += '<div class="notes">';
@@ -1743,7 +1805,38 @@
     return html;
   }
 
+  function renderSignalChecklist(l) {
+    var have = {};
+    (l.signals || []).forEach(function (id) { have[id] = true; });
+    var html = '<div class="signals">';
+    html += '<div class="signals-head"><span class="k">Temperatur lead</span>' + tempBadge(l) + '</div>';
+    html += '<div class="signals-grid">';
+    SIGNAL_GROUPS.forEach(function (g) {
+      html += '<div class="signal-group sg-' + g.level + '"><div class="sg-title">' + g.title + ' <span>· ' + g.hint + '</span></div>';
+      g.items.forEach(function (it) {
+        html += '<label class="checkbox-label"><input type="checkbox" data-action="signal" data-id="' + l.id + '" value="' + it[0] + '"' +
+          (have[it[0]] ? " checked" : "") + '>' + escapeHtml(it[1]) + '</label>';
+      });
+      html += '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
   function bindDetailHandlers(root) {
+    root.querySelectorAll('input[data-action="signal"]').forEach(function (box) {
+      box.addEventListener("click", function (e) { e.stopPropagation(); });
+      box.addEventListener("change", function () {
+        var lead = leads.find(function (x) { return x.id === box.getAttribute("data-id"); });
+        if (!lead) return;
+        var set = (lead.signals || []).filter(function (id) { return id !== box.value; });
+        if (box.checked) set.push(box.value);
+        lead.signals = set;
+        persistLead(lead);
+        refreshAll();
+        showToast("Temperatur: " + leadTemperature(lead));
+      });
+    });
     root.querySelectorAll('select[data-action="stage"]').forEach(function (sel) {
       sel.addEventListener("click", function (e) { e.stopPropagation(); });
       sel.addEventListener("change", function (e) {
@@ -1859,6 +1952,13 @@
     });
     html += '</select></div>';
 
+    html += '<div class="field-wrap"><label for="filter-temp">Temperatur</label><select id="filter-temp">';
+    html += '<option value=""' + (filters.temp === "" ? " selected" : "") + '>Semua</option>';
+    TEMP_ORDER.forEach(function (t) {
+      html += '<option value="' + t + '"' + (filters.temp === t ? " selected" : "") + '>' + t + '</option>';
+    });
+    html += '</select></div>';
+
     html += '<div class="field-wrap"><label for="filter-minat">Minat</label><select id="filter-minat">';
     html += '<option value=""' + (filters.minat === "" ? " selected" : "") + '>Semua Minat</option>';
     MINAT_GROUPS.forEach(function (g) {
@@ -1891,6 +1991,7 @@
     document.getElementById("filter-source").addEventListener("change", function (e) { filters.source = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-stage").addEventListener("change", function (e) { filters.stage = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-minat").addEventListener("change", function (e) { filters.minat = e.target.value; renderAllLeadsView(); });
+    document.getElementById("filter-temp").addEventListener("change", function (e) { filters.temp = e.target.value; renderAllLeadsView(); });
     document.getElementById("filter-date-from").addEventListener("change", function (e) {
       filters.dateFrom = e.target.value;
       renderAllLeadsView();
@@ -1911,7 +2012,7 @@
       if (again) { again.focus(); try { again.setSelectionRange(cursor, cursor); } catch (err) {} }
     });
     document.getElementById("filter-reset").addEventListener("click", function () {
-      filters = { source: "", stage: "", minat: "", q: "", dateFrom: "", dateTo: "" };
+      filters = { source: "", stage: "", minat: "", temp: "", q: "", dateFrom: "", dateTo: "" };
       renderAllLeadsView();
     });
 
@@ -2038,7 +2139,8 @@
         minat: minat || "—",
         stage: respondedIso ? "Direspon" : "Masuk",
         lossRank: null,
-        notes: catatan ? [{ ts: new Date().toISOString(), text: catatan }] : []
+        notes: catatan ? [{ ts: new Date().toISOString(), text: catatan }] : [],
+        signals: []
       };
       leads.unshift(lead);
       persistLead(lead);

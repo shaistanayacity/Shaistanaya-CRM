@@ -14,6 +14,7 @@ create table if not exists public.leads (
                 check (stage in ('Masuk', 'Direspon', 'Follow Up', 'Janjian', 'Deal', 'Lost')),
   loss_rank     smallint,
   notes         jsonb not null default '[]'::jsonb,
+  signals       jsonb not null default '[]'::jsonb,  -- temperature checklist ids
   updated_at    timestamptz not null default now()
 );
 
