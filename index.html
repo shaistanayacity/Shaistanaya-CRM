@@ -1420,7 +1420,7 @@
   }
   function leadsToCsv(list) {
     var headers = ["Tanggal", "Jam Masuk", "Jam Respon", "Sumber", "Nama", "No Telp", "Domisili",
-      "Minat/Unit", "Tahap", "Temperatur", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir"];
+      "Minat/Unit", "Tahap", "Funnel", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir"];
     var rows = [headers.map(csvEscape).join(",")];
     list.forEach(function (l) {
       var d = new Date(l.createdAt);
@@ -1744,7 +1744,7 @@
   function renderLeadsTable(list) {
     if (!list.length) return '<div class="empty">Belum ada lead tercatat.</div>';
     var html = '<div class="table-scroll"><table class="leads"><thead><tr>';
-    html += '<th>Waktu</th><th>Sumber</th><th>Nama</th><th>Respon</th><th>Kontak terakhir</th><th>Tahap</th><th>Temperatur</th>';
+    html += '<th>Waktu</th><th>Sumber</th><th>Nama</th><th>Respon</th><th>Kontak terakhir</th><th>Tahap</th><th>Funnel</th>';
     html += '</tr></thead><tbody>';
     list.forEach(function (l) {
       var badgeClass = STAGE_CLASS[l.stage] || "s-masuk";
@@ -1811,7 +1811,7 @@
     var have = {};
     (signals || []).forEach(function (id) { have[id] = true; });
     var html = '<div class="signals">';
-    html += '<div class="signals-head"><span class="k">Temperatur lead</span>' +
+    html += '<div class="signals-head"><span class="k">Funnel lead</span>' +
       (badgeId ? '<span id="' + badgeId + '">' : '<span>') + tempBadge({ signals: signals }) + '</span></div>';
     html += '<div class="signals-grid">';
     SIGNAL_GROUPS.forEach(function (g) {
@@ -1841,7 +1841,7 @@
         lead.signals = set;
         persistLead(lead);
         refreshAll();
-        showToast("Temperatur: " + leadTemperature(lead));
+        showToast("Funnel: " + leadTemperature(lead));
       });
     });
     root.querySelectorAll('select[data-action="stage"]').forEach(function (sel) {
@@ -1959,7 +1959,7 @@
     });
     html += '</select></div>';
 
-    html += '<div class="field-wrap"><label for="filter-temp">Temperatur</label><select id="filter-temp">';
+    html += '<div class="field-wrap"><label for="filter-temp">Funnel</label><select id="filter-temp">';
     html += '<option value=""' + (filters.temp === "" ? " selected" : "") + '>Semua</option>';
     TEMP_ORDER.forEach(function (t) {
       html += '<option value="' + t + '"' + (filters.temp === t ? " selected" : "") + '>' + t + '</option>';
