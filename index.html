@@ -1964,9 +1964,7 @@
     html += '<div class="field-wrap full"><label for="f-source">Sumber lead <span class="opt">(opsional)</span></label><select id="f-source">';
     html += '<option value="" selected>Belum diketahui / pilih sumber…</option>';
     SOURCE_GROUPS.forEach(function (g) {
-      html += '<optgroup label="' + g.group + '">';
-      g.options.forEach(function (o) { html += '<option value="' + o + '">' + o + '</option>'; });
-      html += '</optgroup>';
+      html += '<option value="' + g.group + '">' + g.group + '</option>';
     });
     html += '</select></div>';
 
