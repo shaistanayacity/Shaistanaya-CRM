@@ -425,7 +425,8 @@
   .badge.t-warm { background: var(--warning-soft); color: var(--warning); }
   .badge.t-cold { background: var(--panel-sunken); color: var(--muted); border: 1px solid var(--line-strong); }
   .badge.t-none { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
-  .detail .signals { grid-column: 1/-1; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--panel); }
+  .signals { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--panel); }
+  .detail .signals { grid-column: 1/-1; }
   .signals-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .signals-head .k { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
   .signals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
@@ -1805,22 +1806,28 @@
     return html;
   }
 
-  function renderSignalChecklist(l) {
+  // Checklist boxes shared by the lead detail and the Tambah Lead form.
+  function signalChecklistHtml(signals, inputAttrs, badgeId) {
     var have = {};
-    (l.signals || []).forEach(function (id) { have[id] = true; });
+    (signals || []).forEach(function (id) { have[id] = true; });
     var html = '<div class="signals">';
-    html += '<div class="signals-head"><span class="k">Temperatur lead</span>' + tempBadge(l) + '</div>';
+    html += '<div class="signals-head"><span class="k">Temperatur lead</span>' +
+      (badgeId ? '<span id="' + badgeId + '">' : '<span>') + tempBadge({ signals: signals }) + '</span></div>';
     html += '<div class="signals-grid">';
     SIGNAL_GROUPS.forEach(function (g) {
       html += '<div class="signal-group sg-' + g.level + '"><div class="sg-title">' + g.title + ' <span>· ' + g.hint + '</span></div>';
       g.items.forEach(function (it) {
-        html += '<label class="checkbox-label"><input type="checkbox" data-action="signal" data-id="' + l.id + '" value="' + it[0] + '"' +
+        html += '<label class="checkbox-label"><input type="checkbox" ' + inputAttrs + ' value="' + it[0] + '"' +
           (have[it[0]] ? " checked" : "") + '>' + escapeHtml(it[1]) + '</label>';
       });
       html += '</div>';
     });
     html += '</div></div>';
     return html;
+  }
+
+  function renderSignalChecklist(l) {
+    return signalChecklistHtml(l.signals, 'data-action="signal" data-id="' + l.id + '"', null);
   }
 
   function bindDetailHandlers(root) {
@@ -2083,6 +2090,7 @@
     });
     html += '</select></div>';
     html += '<div class="field-wrap full"><label for="f-catatan">Catatan awal <span class="opt">(opsional)</span></label><textarea id="f-catatan"></textarea></div>';
+    html += '<div class="field-wrap full">' + signalChecklistHtml([], 'name="f-signal"', "f-temp-badge") + '</div>';
 
     html += '</div>';
     html += '<button type="submit" class="primary">Simpan Lead</button>';
@@ -2106,6 +2114,13 @@
     });
     bindDetailHandlers(el);
 
+    el.querySelectorAll('input[name="f-signal"]').forEach(function (box) {
+      box.addEventListener("change", function () {
+        var picked = Array.prototype.map.call(el.querySelectorAll('input[name="f-signal"]:checked'), function (b) { return b.value; });
+        document.getElementById("f-temp-badge").innerHTML = tempBadge({ signals: picked });
+      });
+    });
+
     document.getElementById("lead-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var source = document.getElementById("f-source").value;
@@ -2114,6 +2129,7 @@
       var domisili = document.getElementById("f-domisili").value.trim();
       var minat = document.getElementById("f-minat").value.trim();
       var catatan = document.getElementById("f-catatan").value.trim();
+      var signals = Array.prototype.map.call(el.querySelectorAll('input[name="f-signal"]:checked'), function (b) { return b.value; });
       var createdRaw = document.getElementById("f-created").value;
       var respondedRaw = document.getElementById("f-responded").value;
       if (!telp || !createdRaw || !respondedRaw) return;
@@ -2140,11 +2156,11 @@
         stage: respondedIso ? "Direspon" : "Masuk",
         lossRank: null,
         notes: catatan ? [{ ts: new Date().toISOString(), text: catatan }] : [],
-        signals: []
+        signals: signals
       };
       leads.unshift(lead);
       persistLead(lead);
-      showToast("Lead tersimpan");
+      showToast("Lead tersimpan · " + leadTemperature(lead));
       refreshAll();
     });
   }
