@@ -583,6 +583,11 @@
   .wa-btn:hover { border-color: var(--ink); background: var(--panel-sunken); }
   .wa-btn:hover svg { color: var(--ink); }
   .wa-btn.compact { padding: 3px 5px; margin-left: 6px; vertical-align: -2px; border-radius: 6px; border-color: var(--line); background: transparent; }
+  .stage-actions { display: flex; gap: 8px; align-items: center; }
+  .detail .edit-lead { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--panel); }
+  .edit-lead > .k { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .edit-lead .field-wrap { margin-bottom: 0; }
+  .edit-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   .phone-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .dup-warn {
     grid-column: 1 / -1;
@@ -1273,6 +1278,7 @@
 
   var leads = []; // populated by init()
   var expandedId = null;
+  var editingLeadId = null;
   var editingCluster = null;
 
   var CLUSTER_NOTES_KEY = "shaistanaya_cluster_notes_v1";
@@ -1331,6 +1337,46 @@
     if (d.charAt(0) === "8") return "62" + d;
     return d;
   }
+  // Phone field rules: always starts with 62, then 8…, 10-15 digits in total.
+  var PHONE_PATTERN = "628[0-9]{7,12}";
+  function keepPhonePrefix(raw) {
+    var d = String(raw || "").replace(/\D/g, "");
+    if (d.indexOf("62") !== 0) {
+      if (d.charAt(0) === "0") d = "62" + d.slice(1);
+      else if (d.charAt(0) === "8") d = "62" + d;
+      else d = "62" + d.replace(/^6/, "");
+    }
+    // A number pasted after the fixed 62 may carry its own 62 / 0 (mobile numbers start with 8, so these are never real digits).
+    return "62" + d.slice(2).replace(/^(62|0)+/, "");
+  }
+  function bindPhoneInput(input) {
+    // The "62" prefix is fixed: typing/pasting is normalized, and a collapsed caret can't sit in front of it.
+    function guardCaret() {
+      try {
+        if (input.selectionStart === input.selectionEnd && input.selectionStart < 2) input.setSelectionRange(2, 2);
+      } catch (e) { /* some input types don't expose selection */ }
+    }
+    input.addEventListener("beforeinput", function (e) {
+      // Runs before the character lands, so even the first keystroke can't go in front of "62".
+      if (e.inputType && e.inputType.indexOf("insert") === 0) guardCaret();
+    });
+    input.addEventListener("input", function () {
+      var fixed = keepPhonePrefix(input.value);
+      if (fixed !== input.value) input.value = fixed;
+      guardCaret();
+    });
+    ["focus", "click", "touchend"].forEach(function (ev) {
+      input.addEventListener(ev, function () { setTimeout(guardCaret, 0); });
+    });
+    input.addEventListener("keyup", guardCaret);
+  }
+  function isValidPhone(v) { return new RegExp("^" + PHONE_PATTERN + "$").test(v); }
+  function toDatetimeLocal(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+
   // Early-stage leads get the Playbook opening line prefilled; later stages start blank.
   function waOpeningText(lead) {
     if (lead.stage !== "Masuk" && lead.stage !== "Direspon") return "";
@@ -1577,7 +1623,7 @@
       var catatanTerakhir = l.notes && l.notes.length ? l.notes[l.notes.length - 1].text : "";
       rows.push([
         tanggal, fmtTime(l.createdAt), l.respondedAt ? fmtTime(l.respondedAt) : "",
-        l.source, l.nama, l.telp, l.domisili, l.minat,
+        l.source, l.nama, '="' + normPhone(l.telp) + '"', l.domisili, l.minat,
         STAGE_LABEL[l.stage] || l.stage, leadTemperature(l), daysSinceContact(l), followUpCount(l), catatanTerakhir
       ].map(csvEscape).join(","));
     });
@@ -1915,12 +1961,42 @@
     return html;
   }
 
+  function renderEditForm(l) {
+    var src = sourceGroupOf(l.source);
+    var html = '<div class="edit-lead">';
+    html += '<div class="k">Ubah data lead</div><div class="form-grid">';
+    html += '<div class="field-wrap"><label>Nama<input type="text" data-f="nama" value="' + escapeHtml(l.nama === "(tanpa nama)" ? "" : l.nama) + '" placeholder="(tanpa nama)"></label></div>';
+    html += '<div class="field-wrap"><label>No. telp<input type="tel" inputmode="numeric" data-f="telp" value="' + escapeHtml(keepPhonePrefix(l.telp)) + '" required pattern="' + PHONE_PATTERN + '" title="Awali 62, lalu 8… (total 10-15 digit)" autocomplete="off"></label></div>';
+    html += '<div class="field-wrap"><label>Sumber lead<select data-f="source"><option value="—"' + (src === "—" ? " selected" : "") + '>Belum diketahui</option>';
+    SOURCE_GROUPS.forEach(function (g) {
+      html += '<option value="' + g.group + '"' + (src === g.group ? " selected" : "") + '>' + g.group + '</option>';
+    });
+    html += '</select></label></div>';
+    html += '<div class="field-wrap"><label>Domisili<input type="text" data-f="domisili" value="' + escapeHtml(l.domisili === "—" ? "" : l.domisili) + '"></label></div>';
+    html += '<div class="field-wrap"><label>Minat / unit<select data-f="minat"><option value="—"' + (l.minat === "—" ? " selected" : "") + '>Belum diketahui</option>';
+    MINAT_GROUPS.forEach(function (g) {
+      html += '<optgroup label="' + g.group + '">';
+      g.options.forEach(function (m) { html += '<option value="' + m + '"' + (l.minat === m ? " selected" : "") + '>' + m + '</option>'; });
+      html += '</optgroup>';
+    });
+    html += '</select></label></div><div class="field-wrap"></div>';
+    html += '<div class="field-wrap"><label>Jam masuk<input type="datetime-local" data-f="created" value="' + toDatetimeLocal(l.createdAt) + '" required></label></div>';
+    html += '<div class="field-wrap"><label>Jam respon <span class="opt">(kosongkan kalau belum direspon)</span><input type="datetime-local" data-f="responded" value="' + toDatetimeLocal(l.respondedAt) + '"></label></div>';
+    html += '</div><div class="edit-actions"><button type="button" class="primary" data-action="save-edit" data-id="' + l.id + '">Simpan perubahan</button>';
+    html += '<button type="button" class="ghost" data-action="cancel-edit">Batal</button></div></div>';
+    return html;
+  }
+
   function renderDetail(l) {
     var html = '<div class="detail">';
-    html += '<div class="field"><div class="k">No. Telp</div><div class="phone-row"><span class="mono">' + escapeHtml(l.telp) + '</span>' + waButton(l, false) + '</div></div>';
-    html += '<div class="field"><div class="k">Domisili</div><div>' + escapeHtml(l.domisili) + '</div></div>';
-    html += '<div class="field"><div class="k">Minat</div><div>' + escapeHtml(l.minat) + '</div></div>';
-    html += '<div class="field"><div class="k">Jam masuk</div><div class="mono">' + fmtDate(l.createdAt) + ' ' + fmtTime(l.createdAt) + '</div></div>';
+    if (editingLeadId === l.id) {
+      html += renderEditForm(l);
+    } else {
+      html += '<div class="field"><div class="k">No. Telp</div><div class="phone-row"><span class="mono">' + escapeHtml(l.telp) + '</span>' + waButton(l, false) + '</div></div>';
+      html += '<div class="field"><div class="k">Domisili</div><div>' + escapeHtml(l.domisili) + '</div></div>';
+      html += '<div class="field"><div class="k">Minat</div><div>' + escapeHtml(l.minat) + '</div></div>';
+      html += '<div class="field"><div class="k">Jam masuk</div><div class="mono">' + fmtDate(l.createdAt) + ' ' + fmtTime(l.createdAt) + '</div></div>';
+    }
 
     html += '<div class="stage-row">';
     html += '<label style="margin:0">Tahap<select data-action="stage" data-id="' + l.id + '">';
@@ -1928,8 +2004,10 @@
       html += '<option value="' + s + '"' + (l.stage === s ? " selected" : "") + '>' + STAGE_LABEL[s] + '</option>';
     });
     html += '</select></label>';
+    html += '<span class="stage-actions">';
+    if (editingLeadId !== l.id) html += '<button type="button" class="ghost" data-action="edit-lead" data-id="' + l.id + '">Ubah data</button>';
     html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
-    html += '</div>';
+    html += '</span></div>';
 
     html += renderSignalChecklist(l);
     html += '<div class="strategy-wrap">' + buildStrategyHtml(l) + '</div>';
@@ -2013,6 +2091,53 @@
         showToast("Tahap diperbarui");
       });
     });
+    root.querySelectorAll('input[data-f="telp"]').forEach(bindPhoneInput);
+    root.querySelectorAll('button[data-action="edit-lead"]').forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        editingLeadId = btn.getAttribute("data-id");
+        refreshAll();
+      });
+    });
+    root.querySelectorAll('button[data-action="cancel-edit"]').forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        editingLeadId = null;
+        refreshAll();
+      });
+    });
+    root.querySelectorAll('button[data-action="save-edit"]').forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var lead = leads.find(function (x) { return x.id === btn.getAttribute("data-id"); });
+        if (!lead) return;
+        var box = btn.closest(".edit-lead");
+        var val = function (f) { return box.querySelector('[data-f="' + f + '"]').value.trim(); };
+        var telp = keepPhonePrefix(val("telp"));
+        if (!isValidPhone(telp)) { showToast("No. telp harus diawali 62 lalu 8… (10-15 digit)"); box.querySelector('[data-f="telp"]').focus(); return; }
+        var created = new Date(val("created"));
+        if (isNaN(created.getTime())) { showToast("Jam masuk tidak valid"); return; }
+        var respondedRaw = val("responded");
+        var responded = respondedRaw ? new Date(respondedRaw) : null;
+        if (responded && isNaN(responded.getTime())) { showToast("Jam respon tidak valid"); return; }
+        var clash = leads.find(function (x) { return x.id !== lead.id && normPhone(x.telp) === normPhone(telp); });
+        if (clash && !window.confirm("Nomor ini sudah dipakai lead lain (" + clash.nama + ").\n\nTetap simpan?")) return;
+
+        lead.nama = val("nama") || "(tanpa nama)";
+        lead.telp = telp;
+        lead.source = val("source") || "—";
+        lead.domisili = val("domisili") || "—";
+        lead.minat = val("minat") || "—";
+        lead.createdAt = created.toISOString();
+        lead.respondedAt = responded ? responded.toISOString() : null;
+        if (responded && lead.stage === "Masuk") lead.stage = "Direspon";
+        leads.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+        editingLeadId = null;
+        persistLead(lead);
+        refreshAll();
+        showToast("Data lead diperbarui");
+      });
+    });
     root.querySelectorAll('button[data-action="delete-lead"]').forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -2071,6 +2196,7 @@
 
   function toggleExpand(id) {
     expandedId = expandedId === id ? null : id;
+    if (expandedId !== id) editingLeadId = null;
     refreshAll();
   }
 
@@ -2226,7 +2352,7 @@
     html += '</select></div>';
 
     html += '<div class="field-wrap"><label for="f-nama">Nama <span class="opt">(opsional)</span></label><input type="text" id="f-nama"></div>';
-    html += '<div class="field-wrap"><label for="f-telp">No. telp</label><input type="tel" id="f-telp" required></div>';
+    html += '<div class="field-wrap"><label for="f-telp">No. telp <span class="opt">(sudah diawali 62, cukup ketik 8…)</span></label><input type="tel" inputmode="numeric" id="f-telp" value="62" required pattern="' + PHONE_PATTERN + '" title="Awali 62, lalu 8… (total 10-15 digit)" autocomplete="off"></div>';
     html += '<div class="dup-warn" id="f-dup" hidden></div>';
     html += '<div class="field-wrap"><label for="f-created">Jam masuk</label><input type="datetime-local" id="f-created" value="' + nowDatetimeLocalValue() + '" required></div>';
     html += '<div class="field-wrap"><label for="f-responded">Jam respon</label><input type="datetime-local" id="f-responded" value="' + nowDatetimeLocalValue() + '" required></div>';
@@ -2271,6 +2397,7 @@
       });
     });
 
+    bindPhoneInput(document.getElementById("f-telp"));
     var dupAcceptedFor = null; // normalized number the CS chose to save anyway
 
     function findLocalDuplicate(num) {
