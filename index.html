@@ -569,13 +569,17 @@
   }
   .wa-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    background: #1FA855; color: #fff;
-    font-size: 0.82rem; font-weight: 600;
-    padding: 7px 12px; border-radius: var(--radius-md);
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line-strong);
+    font-size: 0.82rem; font-weight: 500;
+    padding: 6px 12px; border-radius: var(--radius-md);
     text-decoration: none; white-space: nowrap;
+    transition: border-color .15s, background .15s, color .15s;
   }
-  .wa-btn:hover { background: #178F47; }
-  .wa-btn.compact { padding: 4px 6px; margin-left: 6px; vertical-align: -2px; border-radius: 6px; }
+  .wa-btn svg { color: var(--muted); transition: color .15s; }
+  .wa-btn:hover { border-color: var(--ink); background: var(--panel-sunken); }
+  .wa-btn:hover svg { color: var(--ink); }
+  .wa-btn.compact { padding: 3px 5px; margin-left: 6px; vertical-align: -2px; border-radius: 6px; border-color: var(--line); background: transparent; }
   .phone-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .dup-warn {
     grid-column: 1 / -1;
