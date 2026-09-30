@@ -24,9 +24,10 @@
     --line-strong: #E1E3E9;
     --ink: #14161A;
     --muted: #767B85;
-    --accent: #F0653A;
+    --accent: #A8812F;
+    --accent-text: #7A5C1B;
     --accent-ink: #FFFFFF;
-    --accent-soft: #FDE7DF;
+    --accent-soft: #F3EAD3;
     --success: #1F8A4C;
     --success-soft: #E3F6E9;
     --warning: #B4740A;
@@ -49,9 +50,10 @@
       --line-strong: #383A41;
       --ink: #EDEEF0;
       --muted: #9599A2;
-      --accent: #FF7A52;
+      --accent: #C9A24B;
+      --accent-text: #E2C273;
       --accent-ink: #17110C;
-      --accent-soft: #3A2419;
+      --accent-soft: #382E17;
       --success: #4ADE80;
       --success-soft: #163923;
       --warning: #F2B84B;
@@ -69,9 +71,10 @@
     --line-strong: #383A41;
     --ink: #EDEEF0;
     --muted: #9599A2;
-    --accent: #FF7A52;
+    --accent: #C9A24B;
+    --accent-text: #E2C273;
     --accent-ink: #17110C;
-    --accent-soft: #3A2419;
+    --accent-soft: #382E17;
     --success: #4ADE80;
     --success-soft: #163923;
     --warning: #F2B84B;
@@ -416,7 +419,7 @@
     white-space: nowrap;
   }
   .badge.s-masuk { background: var(--panel-sunken); color: var(--muted); }
-  .badge.s-direspon { background: var(--accent-soft); color: var(--accent); }
+  .badge.s-direspon { background: var(--accent-soft); color: var(--accent-text); }
   .badge.s-followup { background: var(--warning-soft); color: var(--warning); }
   .badge.s-janjian { background: var(--warning-soft); color: var(--warning); }
   .badge.s-deal { background: var(--success-soft); color: var(--success); }
@@ -463,7 +466,7 @@
   .detail .stage-row { grid-column: 1/-1; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .detail .strategy-wrap { grid-column: 1/-1; }
   .strategy-box { background: var(--accent-soft); border-radius: var(--radius-md); padding: 12px 14px; }
-  .strategy-head { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+  .strategy-head { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 5px; }
   .strategy-goal { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
   .strategy-contact { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
   .strategy-contact.warn { color: var(--danger); font-weight: 600; }
@@ -473,7 +476,7 @@
   .strategy-script .k { font-style: normal; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 3px; }
   .strategy-avoid { font-size: 0.78rem; color: var(--danger); }
   .strategy-cluster { background: var(--panel); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; }
-  .strategy-cluster .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+  .strategy-cluster .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 5px; }
   .cluster-note-text { font-size: 0.82rem; margin-bottom: 9px; line-height: 1.45; }
   .cluster-note-text p { margin: 0 0 6px; }
   .cluster-note-text ul, .cluster-note-text ol { margin: 2px 0 8px; padding-left: 18px; }
@@ -482,7 +485,7 @@
   .cluster-note-text .note-label.block + ol, .cluster-note-text .note-label.block + ul { margin-top: 4px; }
   .usp-panel .strategy-cluster { background: var(--panel-sunken); }
   .usp-panel .cluster-note-text { font-size: 0.86rem; }
-  .usp-panel .cluster-note-text .note-label.block { margin-top: 14px; color: var(--accent); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .usp-panel .cluster-note-text .note-label.block { margin-top: 14px; color: var(--accent-text); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; }
   .usp-panel .cluster-note-text .note-label.block:first-child { margin-top: 0; }
   .cluster-note-text li { margin-bottom: 3px; }
   .cluster-note-text .note-label { font-weight: 700; }
