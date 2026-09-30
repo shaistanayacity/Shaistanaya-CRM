@@ -567,6 +567,24 @@
     border-radius: var(--radius-md);
     cursor: pointer;
   }
+  .wa-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #1FA855; color: #fff;
+    font-size: 0.82rem; font-weight: 600;
+    padding: 7px 12px; border-radius: var(--radius-md);
+    text-decoration: none; white-space: nowrap;
+  }
+  .wa-btn:hover { background: #178F47; }
+  .wa-btn.compact { padding: 4px 6px; margin-left: 6px; vertical-align: -2px; border-radius: 6px; }
+  .phone-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .dup-warn {
+    grid-column: 1 / -1;
+    background: var(--warning-soft); color: var(--ink);
+    border: 1px solid var(--warning); border-radius: var(--radius-md);
+    padding: 10px 12px; font-size: 0.84rem;
+  }
+  .dup-warn strong { color: var(--warning); }
+  .dup-warn .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   button.danger {
     appearance: none;
     border: 1px solid var(--danger);
@@ -1206,6 +1224,36 @@
   var historyLoaded = true; // set false when a Supabase load skipped old closed leads
   var historyLoading = null;
 
+  // ---------- Phone & WhatsApp ----------
+  // Same rule as the telp_norm column in the database: 0812… / +62 812… / 812… -> 62812…
+  function normPhone(raw) {
+    var d = String(raw || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") return "62" + d.slice(1);
+    if (d.charAt(0) === "8") return "62" + d;
+    return d;
+  }
+  // Early-stage leads get the Playbook opening line prefilled; later stages start blank.
+  function waOpeningText(lead) {
+    if (lead.stage !== "Masuk" && lead.stage !== "Direspon") return "";
+    var scripts = STRATEGY["Masuk"].scripts;
+    var script = scripts[sourceGroupOf(lead.source)] || scripts["WhatsApp"];
+    var minat = (lead.minat && lead.minat !== "—") ? lead.minat : "Shaistanaya City";
+    return script.split("{{minat}}").join(minat);
+  }
+  function waLink(lead) {
+    var num = normPhone(lead.telp);
+    if (num.length < 9) return null;
+    var text = waOpeningText(lead);
+    return "https://wa.me/" + num + (text ? "?text=" + encodeURIComponent(text) : "");
+  }
+  var WA_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.2a6.7 6.7 0 0 0-5.8 10.1L1.3 14.8l3.6-.9A6.7 6.7 0 1 0 8 1.2zm0 12.2c-1 0-2-.3-2.9-.8l-.2-.1-2.1.6.6-2.1-.1-.2A5.5 5.5 0 1 1 8 13.4zm3-4.1c-.2-.1-1-.5-1.1-.5-.2-.1-.3-.1-.4.1l-.5.6c-.1.1-.2.1-.4 0a4.5 4.5 0 0 1-2.2-1.9c-.2-.3.2-.3.5-1 .1-.1 0-.2 0-.3l-.5-1.2c-.1-.3-.3-.3-.4-.3h-.3c-.1 0-.3 0-.5.2-.2.2-.6.6-.6 1.5s.7 1.8.8 1.9c.1.1 1.3 2 3.2 2.8 1.2.5 1.7.6 2.3.5.4-.1 1-.4 1.2-.8.1-.4.1-.7.1-.8l-.2-.2z"/></svg>';
+  function waButton(lead, compact) {
+    var href = waLink(lead);
+    if (!href) return "";
+    return '<a class="wa-btn' + (compact ? ' compact' : '') + '" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" data-wa title="Chat WhatsApp ' + escapeHtml(lead.telp) + '">' +
+      WA_ICON + (compact ? '' : '<span>Chat WA</span>') + '</a>';
+  }
+
   // ---------- Lead temperature ----------
   // CS ticks the signals they see; temperature follows from these rules, in order:
   // any negative signal -> Cold, else any strong signal -> Hot, else any medium -> Warm.
@@ -1361,7 +1409,9 @@
       }
       if (filters.q) {
         var q = filters.q.toLowerCase();
-        if (l.nama.toLowerCase().indexOf(q) === -1 && l.telp.indexOf(q) === -1) return false;
+        var qDigits = q.replace(/\D/g, "");
+        var phoneHit = qDigits.length >= 3 && normPhone(l.telp).indexOf(normPhone(qDigits)) !== -1;
+        if (l.nama.toLowerCase().indexOf(q) === -1 && l.telp.indexOf(q) === -1 && !phoneHit) return false;
       }
       return true;
     });
@@ -1728,7 +1778,7 @@
     });
 
     el.querySelectorAll("tr[data-id]").forEach(function (row) {
-      row.addEventListener("click", function () { toggleExpand(row.getAttribute("data-id")); });
+      row.addEventListener("click", function (e) { if (e.target.closest("[data-wa]")) return; toggleExpand(row.getAttribute("data-id")); });
     });
     bindDetailHandlers(el);
   }
@@ -1752,7 +1802,7 @@
       html += '<tr data-id="' + l.id + '">';
       html += '<td class="mono">' + fmtDate(l.createdAt) + ' · ' + fmtTime(l.createdAt) + '</td>';
       html += '<td>' + escapeHtml(l.source) + '</td>';
-      html += '<td>' + escapeHtml(l.nama) + '</td>';
+      html += '<td>' + escapeHtml(l.nama) + waButton(l, true) + '</td>';
       html += '<td><span class="sla-dot ' + slaClass(l) + '"></span>' + (l.respondedAt ? fmtTime(l.respondedAt) : "belum") + '</td>';
       html += '<td' + (stale ? ' class="stale-cell"' : '') + '>' + (stale ? '<span class="sla-dot sla-bad"></span>' : '') + contactLabel(l) + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + STAGE_LABEL[l.stage] + '</span></td>';
@@ -1768,7 +1818,7 @@
 
   function renderDetail(l) {
     var html = '<div class="detail">';
-    html += '<div class="field"><div class="k">No. Telp</div><div class="mono">' + escapeHtml(l.telp) + '</div></div>';
+    html += '<div class="field"><div class="k">No. Telp</div><div class="phone-row"><span class="mono">' + escapeHtml(l.telp) + '</span>' + waButton(l, false) + '</div></div>';
     html += '<div class="field"><div class="k">Domisili</div><div>' + escapeHtml(l.domisili) + '</div></div>';
     html += '<div class="field"><div class="k">Minat</div><div>' + escapeHtml(l.minat) + '</div></div>';
     html += '<div class="field"><div class="k">Jam masuk</div><div class="mono">' + fmtDate(l.createdAt) + ' ' + fmtTime(l.createdAt) + '</div></div>';
@@ -2053,7 +2103,7 @@
 
 
     el.querySelectorAll("tr[data-id]").forEach(function (row) {
-      row.addEventListener("click", function () { toggleExpand(row.getAttribute("data-id")); });
+      row.addEventListener("click", function (e) { if (e.target.closest("[data-wa]")) return; toggleExpand(row.getAttribute("data-id")); });
     });
     bindDetailHandlers(el);
   }
@@ -2078,6 +2128,7 @@
 
     html += '<div class="field-wrap"><label for="f-nama">Nama <span class="opt">(opsional)</span></label><input type="text" id="f-nama"></div>';
     html += '<div class="field-wrap"><label for="f-telp">No. telp</label><input type="tel" id="f-telp" required></div>';
+    html += '<div class="dup-warn" id="f-dup" hidden></div>';
     html += '<div class="field-wrap"><label for="f-created">Jam masuk</label><input type="datetime-local" id="f-created" value="' + nowDatetimeLocalValue() + '" required></div>';
     html += '<div class="field-wrap"><label for="f-responded">Jam respon</label><input type="datetime-local" id="f-responded" value="' + nowDatetimeLocalValue() + '" required></div>';
     html += '<div class="field-wrap"><label for="f-domisili">Domisili <span class="opt">(opsional)</span></label><input type="text" id="f-domisili"></div>';
@@ -2110,7 +2161,7 @@
     el.innerHTML = html;
 
     el.querySelectorAll("tr[data-id]").forEach(function (row) {
-      row.addEventListener("click", function () { toggleExpand(row.getAttribute("data-id")); });
+      row.addEventListener("click", function (e) { if (e.target.closest("[data-wa]")) return; toggleExpand(row.getAttribute("data-id")); });
     });
     bindDetailHandlers(el);
 
@@ -2121,8 +2172,59 @@
       });
     });
 
-    document.getElementById("lead-form").addEventListener("submit", function (e) {
+    var dupAcceptedFor = null; // normalized number the CS chose to save anyway
+
+    function findLocalDuplicate(num) {
+      if (num.length < 9) return null;
+      return leads.find(function (l) { return normPhone(l.telp) === num; }) || null;
+    }
+    async function findDuplicate(num) {
+      var local = findLocalDuplicate(num);
+      if (local || !db || num.length < 9) return local;
+      // Older closed leads may not be loaded; ask the server too.
+      var res = await db.from("leads").select("*").eq("telp_norm", num).order("created_at", { ascending: false }).limit(1);
+      if (res.error || !res.data.length) return null;
+      var found = rowToLead(res.data[0]);
+      if (!leads.some(function (l) { return l.id === found.id; })) {
+        leads.push(found);
+        leads.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+      }
+      return found;
+    }
+    function showDuplicate(dup, num) {
+      var box = document.getElementById("f-dup");
+      if (!dup) { box.hidden = true; box.innerHTML = ""; return; }
+      box.hidden = false;
+      box.innerHTML = '<strong>Nomor ini sudah tercatat.</strong> ' + escapeHtml(dup.nama) + ' · ' + escapeHtml(STAGE_LABEL[dup.stage] || dup.stage) +
+        ' · ' + leadTemperature(dup) + ' · masuk ' + fmtDate(dup.createdAt) +
+        '<div class="actions"><button type="button" class="ghost" id="dup-open">Buka lead lama</button>' +
+        '<button type="button" class="ghost" id="dup-save">Tetap simpan sebagai lead baru</button></div>';
+      document.getElementById("dup-open").addEventListener("click", function () { openLead(dup.id); });
+      document.getElementById("dup-save").addEventListener("click", function () {
+        dupAcceptedFor = num;
+        document.getElementById("lead-form").requestSubmit();
+      });
+    }
+
+    var dupTimer = null;
+    document.getElementById("f-telp").addEventListener("input", function (e) {
+      clearTimeout(dupTimer);
+      var num = normPhone(e.target.value);
+      dupTimer = setTimeout(function () { showDuplicate(findLocalDuplicate(num), num); }, 250);
+    });
+
+    document.getElementById("lead-form").addEventListener("submit", async function (e) {
       e.preventDefault();
+      var telpNum = normPhone(document.getElementById("f-telp").value);
+      if (dupAcceptedFor !== telpNum) {
+        var dup = await findDuplicate(telpNum);
+        if (dup) {
+          showDuplicate(dup, telpNum);
+          document.getElementById("f-dup").scrollIntoView({ block: "center", behavior: "smooth" });
+          return;
+        }
+      }
+      dupAcceptedFor = null;
       var source = document.getElementById("f-source").value;
       var nama = document.getElementById("f-nama").value.trim();
       var telp = document.getElementById("f-telp").value.trim();
@@ -2217,6 +2319,16 @@
   }
 
   // ---------- Nav ----------
+
+  // Jump to one lead in Semua Lead with its detail open.
+  function openLead(id) {
+    var lead = leads.find(function (l) { return l.id === id; });
+    if (!lead) return;
+    filters = { source: "", stage: "", minat: "", temp: "", q: lead.telp, dateFrom: "", dateTo: "" };
+    expandedId = id;
+    refreshAll();
+    switchView("all");
+  }
 
   function switchView(view) {
     document.querySelectorAll("nav.tabs button").forEach(function (b) {

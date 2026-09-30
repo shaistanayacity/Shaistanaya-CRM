@@ -20,6 +20,16 @@ create table if not exists public.leads (
 
 create index if not exists leads_created_at_idx on public.leads (created_at desc);
 
+-- Normalized phone (0812… / +62 812… / 812… -> 62812…) for duplicate checks.
+alter table public.leads add column if not exists telp_norm text generated always as (
+  case
+    when regexp_replace(telp, '\D', '', 'g') like '0%' then '62' || substr(regexp_replace(telp, '\D', '', 'g'), 2)
+    when regexp_replace(telp, '\D', '', 'g') like '8%' then '62' || regexp_replace(telp, '\D', '', 'g')
+    else regexp_replace(telp, '\D', '', 'g')
+  end
+) stored;
+create index if not exists leads_telp_norm_idx on public.leads (telp_norm);
+
 create table if not exists public.cluster_notes (
   minat       text primary key,
   note        text not null,
