@@ -792,6 +792,21 @@
     .sidebar nav.tabs button.active { border-left: 3px solid var(--sb-ink); }
     .sidebar nav.tabs button.active svg { color: var(--sb-ink); }
   }
+
+  /* Phone: the menu is its own horizontal scroller, so swiping it never pans the whole page. */
+  @media (max-width: 959px) {
+    .sidebar nav.tabs {
+      width: auto; max-width: 100%;
+      overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x proximity;
+      touch-action: pan-x;
+      scrollbar-width: none;
+    }
+    .sidebar nav.tabs::-webkit-scrollbar { display: none; }
+    .sidebar nav.tabs button { flex: none; scroll-snap-align: center; }
+  }
 </style>
 </head>
 <body>
@@ -2413,7 +2428,9 @@
 
   function switchView(view) {
     document.querySelectorAll("nav.tabs button").forEach(function (b) {
-      b.classList.toggle("active", b.getAttribute("data-view") === view);
+      var on = b.getAttribute("data-view") === view;
+      b.classList.toggle("active", on);
+      if (on && b.scrollIntoView) b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
     });
     document.querySelectorAll("section.view").forEach(function (s) { s.classList.remove("active"); });
     document.getElementById("view-" + view).classList.add("active");
