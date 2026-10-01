@@ -2371,7 +2371,18 @@
   }
 
   // ----- tasks -----
-  // Order of checks: not answered yet > survey tomorrow to confirm > Hot with no survey plan > follow-up due.
+  // A lead with no follow-up date is scheduled automatically for AUTO_FU_DAYS after the last contact, so a lead
+  // contacted today only shows up tomorrow (no same-day nagging). Cold leads and leads with a survey ahead are not
+  // auto-scheduled; they only appear when someone set a date.
+  var AUTO_FU_DAYS = 1;
+  function effectiveNext(l) {
+    if (l.nextAt) return { key: l.nextAt, auto: false };
+    var d = new Date(lastContactMs(l)); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + AUTO_FU_DAYS);
+    return { key: dayKeyLocal(d), auto: true };
+  }
+  function surveyAhead(l) { return !!l.surveyAt && new Date(l.surveyAt) > new Date(); }
+  function autoScheduled(l) { return activeLead(l) && !!l.respondedAt && !l.nextAt && !surveyAhead(l) && leadTemperature(l) !== "Cold"; }
+  // Order of checks: not answered yet > survey tomorrow to confirm > follow-up due (Hot with no survey plan first).
   function computeTasks() {
     var today = dayKeyLocal(new Date()), tomorrow = keyOffset(1), out = [];
     leads.forEach(function (l) {
@@ -2382,17 +2393,10 @@
         out.push({ l: l, type: "konfirmasi", rank: new Date(l.surveyAt).getTime() });
         return;
       }
-      var n = l.nextAt ? daysFromToday(l.nextAt) : null;       // <0 late, 0 today
-      var since = daysSinceContact(l);
-      // Hot with no survey plan and no future follow-up date: always worth a look.
-      if (hotNoSurvey(l) && (!l.nextAt || n < 0)) { out.push({ l: l, type: "hot", rank: -(l.nextAt ? -n : since) }); return; }
-      var due = l.nextAt ? n <= 0 : since >= 2;                  // no date set: fall back to "2+ days without contact"
-      if (due) { out.push({ l: l, type: "fu", rank: -(l.nextAt ? -n : since) }); return; }
-      // Nothing scheduled at all: ask the CS to set the next follow-up (Cold leads and leads with a survey ahead are skipped).
-      var surveyAhead = l.surveyAt && new Date(l.surveyAt) > new Date();
-      if (!l.nextAt && !surveyAhead && leadTemperature(l) !== "Cold") {
-        out.push({ l: l, type: "atur", rank: 1000 + (leadTemperature(l) === "Hot" ? 0 : leadTemperature(l) === "Warm" ? 100 : 200) - since });
-      }
+      if (!l.nextAt && !autoScheduled(l)) return;
+      var nx = effectiveNext(l), n = daysFromToday(nx.key);
+      if (n > 0) return;                                        // scheduled for a later day
+      out.push({ l: l, type: hotNoSurvey(l) ? "hot" : "fu", rank: n, auto: nx.auto });
     });
     out.sort(function (a, b) { return a.rank - b.rank; });
     return out;
@@ -2405,28 +2409,20 @@
     respon: { title: "Segera dibalas", sub: "target respon 15 menit" },
     hot: { title: "Lead Hot yang butuh perhatian", sub: "belum ada jadwal survey" },
     fu: { title: "Follow up hari ini", sub: "sesuai langkah berikutnya" },
-    atur: { title: "Belum ada jadwal follow up", sub: "tentukan kapan dihubungi lagi" },
     konfirmasi: { title: "Konfirmasi survey besok", sub: "kirim pengingat ke lead" }
   };
   function taskReason(t) {
-    var l = t.l, n;
+    var l = t.l;
     if (t.type === "respon") {
       var m = minutesSince(l.createdAt);
       return m > 15 ? { tone: "urgent", text: "Belum direspon " + durLabel(m) + ", lewat target 15 menit" }
         : { tone: "amber", text: "Belum direspon " + m + " menit, " + (15 - m) + " menit lagi menuju batas" };
     }
     if (t.type === "konfirmasi") return { tone: "amber", text: "Survey besok jam " + jamLabel(l.surveyAt) + " · belum dikonfirmasi" };
-    if (t.type === "hot") {
-      var base = l.nextAt ? "Hot, follow up telat " + (-daysFromToday(l.nextAt)) + " hari"
-        : daysSinceContact(l) >= 2 ? "Hot, " + daysSinceContact(l) + " hari belum dihubungi" : "Hot, belum ada jadwal follow up";
-      return { tone: "urgent", text: base + " · belum ada jadwal survey" };
-    }
-    if (t.type === "atur") return { tone: "amber", text: "Belum ada jadwal follow up · terakhir dihubungi " + contactLabel(l) };
-    if (l.nextAt) {
-      n = daysFromToday(l.nextAt);
-      return n < 0 ? { tone: "urgent", text: "Follow up telat " + (-n) + " hari" } : { tone: "ink", text: "Follow up hari ini" };
-    }
-    return { tone: "amber", text: daysSinceContact(l) + " hari belum dihubungi" };
+    var n = -t.rank, how = t.auto ? " (jadwal otomatis)" : "";
+    var base = n > 0 ? "follow up telat " + n + " hari" + how : "follow up hari ini" + how;
+    if (t.type === "hot") return { tone: "urgent", text: "Hot, " + base + " · belum ada jadwal survey" };
+    return n > 0 ? { tone: "urgent", text: base.charAt(0).toUpperCase() + base.slice(1) } : { tone: "ink", text: base.charAt(0).toUpperCase() + base.slice(1) };
   }
   function recoTemplate(l) {
     if (!l.respondedAt) return "pembuka";
@@ -2509,13 +2505,13 @@
   // ----- Tugas Hari Ini view -----
   function taskCardHtml(t) {
     var l = t.l, r = taskReason(t), open = tgSheet === l.id;
-    var nextLine = (l.nextAt && t.type !== "respon") ? '<p class="tg-next">Langkah berikutnya: ' + escapeHtml(l.nextNote || "Follow up") + ' · ' + dayLabelKey(l.nextAt) + '</p>' : "";
+    var nextLine = (l.nextAt && !t.auto && t.type !== "respon") ? '<p class="tg-next">Langkah berikutnya: ' + escapeHtml(l.nextNote || "Follow up") + ' · ' + dayLabelKey(l.nextAt) + '</p>' : "";
     var actions =
       (t.type === "hot" ? '<button type="button" class="btn-gold" data-x="wa" data-id="' + l.id + '" data-tpl="survey">Ajak survey</button>' : "") +
       '<button type="button" class="wa-btn" data-x="wa" data-id="' + l.id + '" data-tpl="' + recoTemplate(l) + '">' + WA_ICON + '<span>Chat WA</span></button>' +
       (t.type === "konfirmasi"
         ? '<button type="button" class="ghost" data-x="tg-konf" data-id="' + l.id + '">Sudah dikonfirmasi</button>'
-        : '<button type="button" class="ghost" data-x="tg-sheet" data-id="' + l.id + '">' + (t.type === "atur" ? "Atur jadwal" : "Selesai") + '</button>');
+        : '<button type="button" class="ghost" data-x="tg-sheet" data-id="' + l.id + '">' + "Selesai" + '</button>');
     return '<article class="tg-task">' +
       '<div class="tg-avatar">' + escapeHtml(initialsOf(l.nama)) + '</div>' +
       '<div style="min-width:0"><div class="tg-top"><button type="button" class="tg-name" data-x="open" data-id="' + l.id + '">' + escapeHtml(l.nama) + '</button>' +
@@ -2530,7 +2526,7 @@
     var el = document.getElementById("view-tugas");
     if (!el) return;
     var all = computeTasks(), doneList = doneTodayLeads(), total = all.length + doneList.length;
-    var counts = { respon: 0, hot: 0, fu: 0, atur: 0, konfirmasi: 0 };
+    var counts = { respon: 0, hot: 0, fu: 0, konfirmasi: 0 };
     all.forEach(function (t) { counts[t.type]++; });
     var badge = document.getElementById("tg-count");
     if (badge) badge.textContent = all.length ? String(all.length) : "";
@@ -2538,24 +2534,25 @@
     var now = new Date();
     var html = renderPageHeader("Tugas Hari Ini", DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MON_NAMES[now.getMonth()] + " · urut dari yang paling mendesak", null);
     html += '<div class="tg-progress"><div class="track"><div class="fill" style="width:' + (total ? Math.round(doneList.length / total * 100) : 0) + '%"></div></div><b class="mono">' + doneList.length + ' dari ' + total + ' selesai</b></div>';
-    var chips = [["all", "Semua (" + all.length + ")"], ["respon", "Belum direspon (" + counts.respon + ")"], ["hot", "Hot (" + counts.hot + ")"], ["fu", "Follow up (" + counts.fu + ")"], ["atur", "Atur jadwal (" + counts.atur + ")"], ["konfirmasi", "Konfirmasi survey (" + counts.konfirmasi + ")"]];
+    var chips = [["all", "Semua (" + all.length + ")"], ["respon", "Belum direspon (" + counts.respon + ")"], ["hot", "Hot (" + counts.hot + ")"], ["fu", "Follow up (" + counts.fu + ")"], ["konfirmasi", "Konfirmasi survey (" + counts.konfirmasi + ")"]];
     html += '<div class="tg-filters">' + chips.map(function (c) {
       return '<button type="button" class="tg-chip" data-x="tg-filter" data-f="' + c[0] + '" aria-pressed="' + (tgFilter === c[0]) + '">' + c[1] + '</button>';
     }).join("") + '</div>';
     html += '<details class="tg-how"><summary>Bagaimana daftar ini dibuat?</summary><ul>' +
       '<li><b>Segera dibalas:</b> lead yang belum direspon.</li>' +
-      '<li><b>Lead Hot:</b> funnel Hot yang belum punya jadwal survey, dan belum punya follow up berikutnya atau follow up-nya sudah lewat.</li>' +
-      '<li><b>Follow up hari ini:</b> tanggal "Langkah berikutnya" jatuh hari ini atau sudah lewat. Lead tanpa tanggal masuk di sini kalau sudah 2 hari atau lebih tidak dihubungi.</li>' +
-      '<li><b>Belum ada jadwal follow up:</b> lead aktif yang belum punya tanggal follow up dan belum punya survey. Atur tanggalnya supaya tidak terlewat. Lead Cold tidak ditampilkan.</li>' +
       '<li><b>Konfirmasi survey besok:</b> survey dijadwalkan besok dan belum dikonfirmasi.</li>' +
+      '<li><b>Follow up hari ini:</b> tanggal "Langkah berikutnya" jatuh hari ini atau sudah lewat.</li>' +
+      '<li><b>Lead Hot:</b> sama seperti follow up, tetapi untuk lead Hot yang belum punya jadwal survey. Di sini tombol Ajak survey tampil.</li>' +
+      '<li><b>Jadwal otomatis:</b> lead yang belum diatur tanggal follow up-nya dijadwalkan otomatis ' + AUTO_FU_DAYS + ' hari setelah kontak terakhir. Lead yang baru masuk atau baru dihubungi hari ini baru muncul besok, supaya tidak terkesan spam.</li>' +
+      '<li>Lead Cold, lead yang sudah punya survey di depan, dan lead Deal atau Hilang tidak dijadwalkan otomatis. Mereka hanya muncul kalau CS mengatur tanggalnya sendiri.</li>' +
       '<li>Tugas yang sudah ditandai selesai hari ini pindah ke bagian "Selesai hari ini".</li></ul></details>';
-    ["respon", "hot", "fu", "atur", "konfirmasi"].forEach(function (ty) {
+    ["respon", "hot", "fu", "konfirmasi"].forEach(function (ty) {
       var rows = shown.filter(function (t) { return t.type === ty; });
       if (!rows.length) return;
       html += '<div class="tg-sec"><h3>' + TASK_TYPES[ty].title + '</h3><span>' + rows.length + ' · ' + TASK_TYPES[ty].sub + '</span></div><div class="tg-list">' + rows.map(taskCardHtml).join("") + '</div>';
     });
     if (!shown.length) {
-      html += '<div class="panel"><div class="tg-empty">' + (all.length ? "Tidak ada tugas di filter ini." : (doneList.length ? "Semua tugas hari ini selesai." : (leads.length ? "Tidak ada tugas. Semua lead aktif sudah punya jadwal dan belum ada yang jatuh tempo." : "Belum ada lead. Tugas muncul otomatis begitu lead tercatat."))) + '</div></div>';
+      html += '<div class="panel"><div class="tg-empty">' + (all.length ? "Tidak ada tugas di filter ini." : (doneList.length ? "Semua tugas hari ini selesai." : (leads.length ? "Belum ada tugas hari ini. Lead yang baru dihubungi dijadwalkan otomatis untuk hari berikutnya." : "Belum ada lead. Tugas muncul otomatis begitu lead tercatat."))) + '</div></div>';
     }
     if (doneList.length) {
       html += '<details class="tg-done" open><summary>Selesai hari ini (' + doneList.length + ')</summary><div class="tg-list" style="margin-top:8px">' + doneList.map(function (l) {
@@ -2575,8 +2572,14 @@
       var n = daysFromToday(l.nextAt), late = n < 0;
       body = '<div class="nx-when"><b>' + dayLabelKey(l.nextAt) + '</b><span class="' + (late ? "nx-late" : "nx-ok") + '">' + (late ? "Telat " + (-n) + " hari" : n === 0 ? "Hari ini" : "Terjadwal") + '</span></div>' +
         '<p class="nx-text">' + escapeHtml(l.nextNote || "Follow up") + '</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Ubah</button>';
+    } else if (autoScheduled(l)) {
+      var nx = effectiveNext(l), an = daysFromToday(nx.key);
+      body = '<div class="nx-when"><b>' + dayLabelKey(nx.key) + '</b><span class="' + (an < 0 ? "nx-late" : "nx-ok") + '">' + (an < 0 ? "Telat " + (-an) + " hari" : an === 0 ? "Hari ini" : "Otomatis") + '</span></div>' +
+        '<p class="nx-muted">Dijadwalkan otomatis ' + AUTO_FU_DAYS + ' hari setelah kontak terakhir. Ubah kalau ada waktu yang lebih pas.</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Atur tanggal sendiri</button>';
     } else {
-      body = '<p class="nx-muted">Belum ada follow up terjadwal. Lead tanpa tanggal cenderung terlewat.</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Atur follow up</button>';
+      var why = !activeLead(l) ? "Lead ini sudah tidak aktif." : !l.respondedAt ? "Lead ini belum direspon. Balas dulu, lalu atur follow up-nya."
+        : surveyAhead(l) ? "Tidak ada follow up otomatis karena survey sudah dijadwalkan." : "Lead Cold tidak dijadwalkan otomatis.";
+      body = '<p class="nx-muted">' + why + '</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Atur follow up</button>';
     }
     return '<section class="nx-card"><div class="k">Langkah berikutnya</div>' + body + '</section>';
   }
