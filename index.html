@@ -249,6 +249,33 @@
     .content { padding: 30px 36px 60px; }
   }
 
+  .fab-add { display: none; }
+  .sheet-close { display: none; }
+  @media (max-width: 959px) {
+    .fab-add {
+      display: flex; align-items: center; justify-content: center;
+      position: fixed; right: 18px; bottom: calc(20px + var(--safe-b)); z-index: 40;
+      width: 58px; height: 58px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+      background: var(--accent); color: var(--accent-ink);
+      box-shadow: 0 6px 18px rgba(60, 40, 5, 0.35);
+    }
+    .fab-add:active { transform: scale(0.95); }
+    body.sheet-open .fab-add, body.on-input .fab-add { display: none; }
+    section.view.as-sheet {
+      position: fixed; inset: 0; z-index: 50; background: var(--bg); overflow-y: auto;
+      padding: calc(14px + var(--safe-t)) 16px calc(28px + var(--safe-b));
+      overscroll-behavior: contain;
+    }
+    section.view.as-sheet .page-header, section.view.as-sheet .panel > h2:first-child { display: none; }
+    section.view.as-sheet .sheet-close {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-bottom: 12px; font-weight: 700; font-size: 1.05rem;
+    }
+    section.view.as-sheet .sheet-close button {
+      appearance: none; border: 0; background: var(--panel-sunken); color: var(--ink);
+      width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; cursor: pointer;
+    }
+  }
   section.view { display: none; }
   section.view.active { display: block; }
   .app-loading {
@@ -991,6 +1018,7 @@
     <section id="view-playbook" class="view"></section>
   </main>
 </div>
+<button type="button" class="fab-add" id="fab-add" aria-label="Tambah lead" title="Tambah lead"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="wa-modal"></div>
 <div class="toast" id="toast"></div>
 
@@ -3177,7 +3205,8 @@
 
   function renderInputForm() {
     var el = document.getElementById("view-input");
-    var html = renderPageHeader("Input Lead", "Catat lead baru begitu masuk", null);
+    var html = '<div class="sheet-close"><span>Tambah Lead</span><button type="button" id="sheet-close" aria-label="Tutup">\u2715</button></div>';
+    html += renderPageHeader("Input Lead", "Catat lead baru begitu masuk", null);
     html += '<div class="panel">';
     html += '<h2>Tambah Lead</h2>';
     html += '<p class="hint">No. telp, jam masuk &amp; jam respon wajib diisi — sisanya opsional</p>';
@@ -3333,6 +3362,7 @@
       leads.unshift(lead);
       persistLead(lead);
       showToast("Lead tersimpan · " + leadTemperature(lead));
+      closeAddSheet();
       refreshAll();
     });
   }
@@ -3401,7 +3431,29 @@
     switchView("all");
   }
 
+  function openAddSheet() {
+    var v = document.getElementById("view-input");
+    if (v.classList.contains("active")) { var t = document.getElementById("f-telp"); if (t) t.focus(); return; }
+    v.classList.add("as-sheet", "active");
+    document.body.classList.add("sheet-open");
+    v.scrollTop = 0;
+    var tel = document.getElementById("f-telp");
+    if (tel) { tel.focus(); try { tel.setSelectionRange(tel.value.length, tel.value.length); } catch (e) {} }
+  }
+  function closeAddSheet() {
+    var v = document.getElementById("view-input");
+    if (!v.classList.contains("as-sheet")) return;
+    v.classList.remove("as-sheet", "active");
+    document.body.classList.remove("sheet-open");
+  }
+  document.getElementById("fab-add").addEventListener("click", openAddSheet);
+  document.getElementById("view-input").addEventListener("click", function (e) {
+    if (e.target.closest("#sheet-close")) closeAddSheet();
+  });
+
   function switchView(view) {
+    closeAddSheet();
+    document.body.classList.toggle("on-input", view === "input");
     document.querySelectorAll("nav.tabs button").forEach(function (b) {
       var on = b.getAttribute("data-view") === view;
       b.classList.toggle("active", on);
