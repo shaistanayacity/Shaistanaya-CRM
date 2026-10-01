@@ -31,7 +31,7 @@ Menambah anggota tim CS:
    insert into public.team_members (email, nama, role) values ('nama@contoh.com', 'Nama', 'marketing');  -- role: 'admin' atau 'marketing'
    ```
 
-Hanya email yang ada di `team_members` yang bisa membaca atau mengubah data lead (dijaga Row Level Security). Admin melihat semua lead; marketing hanya lead miliknya sendiri, tidak bisa menghapus lead dan tidak bisa mengubah Playbook. Di halaman login, marketing cukup mengetik username (mis. `tama`) — otomatis menjadi `tama@shaistanayacity.com`. Menghapus akses: `delete from public.team_members where email = 'nama@contoh.com';`
+Hanya email yang ada di `team_members` yang bisa membaca atau mengubah data lead (dijaga Row Level Security). Admin melihat semua lead; marketing hanya lead miliknya sendiri (boleh menghapusnya) dan tidak bisa mengubah Playbook. Di halaman login, marketing cukup mengetik username (mis. `tama`) — otomatis menjadi `tama@shaistanayacity.com`. Menghapus akses: `delete from public.team_members where email = 'nama@contoh.com';`
 
 Disarankan juga mematikan pendaftaran publik di **Authentication → Sign In / Providers → Allow new users to sign up**.
 

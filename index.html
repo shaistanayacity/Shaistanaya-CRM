@@ -2205,7 +2205,7 @@
     html += '</select></label>';
     html += '<span class="stage-actions">';
     if (editingLeadId !== l.id) html += '<button type="button" class="ghost" data-action="edit-lead" data-id="' + l.id + '">Ubah data</button>';
-    if (isAdmin()) html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
+    html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
     html += '</span></div>';
 
     html += followUpCardsHtml(l);

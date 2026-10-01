@@ -60,7 +60,7 @@ create trigger cluster_notes_touch before update on public.cluster_notes
   for each row execute function public.touch_updated_at();
 
 -- Akses: admin lihat/ubah semua; marketing hanya lead miliknya sendiri
--- (owner_email), tidak bisa hapus lead dan tidak bisa ubah Playbook.
+-- (owner_email, termasuk hapus lead miliknya) dan tidak bisa ubah Playbook.
 create table if not exists public.team_members (
   email     text primary key check (email = lower(email)),
   nama      text,
@@ -96,6 +96,7 @@ drop policy if exists "leads select" on public.leads;
 drop policy if exists "leads insert" on public.leads;
 drop policy if exists "leads update" on public.leads;
 drop policy if exists "leads delete admin" on public.leads;
+drop policy if exists "leads delete" on public.leads;
 create policy "leads select" on public.leads for select to authenticated
   using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
 create policy "leads insert" on public.leads for insert to authenticated
@@ -103,8 +104,8 @@ create policy "leads insert" on public.leads for insert to authenticated
 create policy "leads update" on public.leads for update to authenticated
   using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())))
   with check ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
-create policy "leads delete admin" on public.leads for delete to authenticated
-  using ((select private.is_admin()));
+create policy "leads delete" on public.leads for delete to authenticated
+  using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
 
 drop policy if exists "team can read cluster notes" on public.cluster_notes;
 drop policy if exists "admin writes cluster notes" on public.cluster_notes;
