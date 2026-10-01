@@ -1818,6 +1818,101 @@
     return rows.join("\r\n");
   }
 
+  // ---------- Export Excel (.xlsx) ----------
+
+  var EXCELJS_URL = "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
+  var excelJsPromise = null;
+  function loadExcelJs() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    if (!excelJsPromise) {
+      excelJsPromise = new Promise(function (resolve, reject) {
+        var sc = document.createElement("script");
+        sc.src = EXCELJS_URL;
+        sc.onload = function () { window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error("ExcelJS missing")); };
+        sc.onerror = function () { excelJsPromise = null; reject(new Error("load failed")); };
+        document.head.appendChild(sc);
+      });
+    }
+    return excelJsPromise;
+  }
+
+  var SIGNAL_NAME = {};
+  SIGNAL_GROUPS.forEach(function (g) { g.items.forEach(function (it) { SIGNAL_NAME[it[0]] = it[1]; }); });
+
+  var XLSX_COLS = [
+    ["Tanggal", 12], ["Jam Masuk", 10], ["Jam Respon", 10], ["Sumber", 14], ["Nama", 22], ["No Telp", 16], ["Domisili", 16],
+    ["Minat/Unit", 18], ["Tahap", 16], ["Funnel", 13], ["Sinyal Funnel", 38], ["Keberatan", 28], ["Hari Sejak Kontak Terakhir", 14],
+    ["Jumlah Catatan/Follow Up", 14], ["Semua Catatan", 60], ["Follow Up Berikutnya", 24], ["Ajakan Survey Terkirim", 18],
+    ["Jadwal Survey", 18], ["Konfirmasi Survey Terkirim", 18], ["Terakhir Selesai Follow Up", 18]
+  ];
+  function stampLocal(iso) { var d = new Date(iso); return dayKeyLocal(d) + " " + jamLabel(iso); }
+
+  function leadToXlsxRow(l) {
+    var notes = l.notes || [];
+    return [
+      dayKeyLocal(new Date(l.createdAt)), jamLabel(l.createdAt), l.respondedAt ? jamLabel(l.respondedAt) : "",
+      l.source, l.nama, normPhone(l.telp), l.domisili, l.minat,
+      STAGE_LABEL[l.stage] || l.stage, leadTemperature(l),
+      (l.signals || []).map(function (x) { return SIGNAL_NAME[x] || x; }).join(" | "),
+      (l.objections || []).map(function (o) { return o.r || ""; }).filter(String).join(" | "),
+      daysSinceContact(l), notes.length,
+      notes.map(function (n) { return stampLocal(n.ts) + " - " + n.text; }).join("\n"),
+      l.nextAt ? l.nextAt + (l.nextNote ? " - " + l.nextNote : "") : "",
+      l.ajakAt ? stampLocal(l.ajakAt) : "", l.surveyAt ? stampLocal(l.surveyAt) : "",
+      l.konfirmAt ? stampLocal(l.konfirmAt) : "", l.doneAt ? stampLocal(l.doneAt) : ""
+    ];
+  }
+
+  function saveBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  // Excel with styled header; falls back to CSV if the library cannot load (offline).
+  async function exportLeads(list, withOwner, baseName) {
+    try {
+      var ExcelJS = await loadExcelJs();
+      var wb = new ExcelJS.Workbook();
+      var ws = wb.addWorksheet("Lead", { views: [{ state: "frozen", ySplit: 1, xSplit: withOwner ? 6 : 5 }] });
+      var cols = (withOwner ? [["Marketing", 14]] : []).concat(XLSX_COLS);
+      ws.columns = cols.map(function (c) { return { header: c[0], width: c[1] }; });
+      var phoneCol = (withOwner ? 1 : 0) + 6;
+      var notesCol = (withOwner ? 1 : 0) + 15;
+      list.forEach(function (l) {
+        var row = leadToXlsxRow(l);
+        if (withOwner) row.unshift(memberLabel(l.owner));
+        ws.addRow(row);
+      });
+      var head = ws.getRow(1);
+      head.font = { bold: true, color: { argb: "FF3B2E0E" } };
+      head.alignment = { vertical: "middle", wrapText: true };
+      head.height = 32;
+      head.eachCell(function (cell) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE9DDBF" } };
+        cell.border = { bottom: { style: "thin", color: { argb: "FFA8812F" } } };
+      });
+      ws.getColumn(phoneCol).numFmt = "@";
+      ws.getColumn(notesCol).alignment = { wrapText: true, vertical: "top" };
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+      var buf = await wb.xlsx.writeBuffer();
+      saveBlob(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), baseName + ".xlsx");
+      showToast("Excel tersimpan");
+    } catch (e) {
+      try {
+        saveBlob(new Blob(["﻿" + leadsToCsv(list, withOwner)], { type: "text/csv;charset=utf-8" }), baseName + ".csv");
+        showToast("Excel gagal dimuat, tersimpan sebagai CSV");
+      } catch (e2) {
+        showToast("Export gagal, coba lagi");
+      }
+    }
+  }
+
   function showToast(msg) {
     var t = document.getElementById("toast");
     t.textContent = msg;
@@ -2945,7 +3040,7 @@
       (historyLoaded ? '' : ' · lead Deal/Hilang &gt;' + RECENT_DAYS + ' hari belum dimuat') + '</span>';
     html += '<span style="display:flex;gap:8px;flex-wrap:wrap">' +
       (historyLoaded ? '' : '<button type="button" class="ghost" id="load-history">Muat riwayat lama</button>') +
-      '<button type="button" class="ghost" id="export-csv">⬇ Export CSV</button><button type="button" class="ghost" id="filter-reset">Reset filter</button></span></div>';
+      '<button type="button" class="ghost" id="export-csv">⬇ Export Excel</button><button type="button" class="ghost" id="filter-reset">Reset filter</button></span></div>';
 
     html += renderLeadsTable(filtered);
     html += '</div>';
@@ -2988,25 +3083,10 @@
       }
       var list = getFilteredLeads();
       if (!list.length) { showToast("Tidak ada lead buat diexport"); return; }
-      var csv = leadsToCsv(list);
       var rangeLabel = (filters.dateFrom || filters.dateTo)
         ? (filters.dateFrom || "awal") + "_sd_" + (filters.dateTo || "sekarang")
         : "semua";
-      var filename = "backup-lead-shaistanaya-" + rangeLabel + ".csv";
-      try {
-        var blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-        showToast("Backup tersimpan");
-      } catch (e) {
-        showToast("Export gagal, coba lagi");
-      }
+      await exportLeads(list, false, (isAdmin() ? "lead-kantor-" : "lead-saya-") + rangeLabel + "-" + dayKeyLocal(new Date()));
     });
 
 
@@ -3139,7 +3219,7 @@
     html += '</div>';
     html += '<div class="filter-summary"><span class="hint" style="margin:0">Menampilkan ' + list.length + ' lead' + (historyLoaded ? '' : ' · lead Deal/Hilang &gt;' + RECENT_DAYS + ' hari belum dimuat') + '</span>' +
       '<span style="display:flex;gap:8px;flex-wrap:wrap">' + (historyLoaded ? '' : '<button type="button" class="ghost" id="t-history">Muat riwayat lama</button>') +
-      '<button type="button" class="ghost" id="t-export">⬇ Export CSV</button></span></div>';
+      '<button type="button" class="ghost" id="t-export">⬇ Export Excel</button></span></div>';
 
     if (!list.length) {
       html += '<div class="empty">Belum ada lead marketing untuk filter ini.</div>';
@@ -3216,16 +3296,7 @@
       }
       var who = teamFilters.who ? memberLabel(teamFilters.who).toLowerCase() : "semua-marketing";
       var tag = (teamFilters.period === "all" ? "semua-waktu" : teamFilters.period + "-hari") + (teamFilters.stage ? "-" + teamFilters.stage.toLowerCase().replace(/\s+/g, "") : "");
-      try {
-        var blob = new Blob(["\uFEFF" + leadsToCsv(list, true)], { type: "text/csv;charset=utf-8" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = "lead-marketing-" + who + "-" + tag + "-" + dayKeyLocal(new Date()) + ".csv";
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-        showToast("CSV tersimpan");
-      } catch (e) { showToast("Export gagal, coba lagi"); }
+      await exportLeads(list, true, "lead-marketing-" + who + "-" + tag + "-" + dayKeyLocal(new Date()));
     });
     var hb = document.getElementById("t-history");
     if (hb) hb.addEventListener("click", function () { hb.disabled = true; hb.textContent = "Memuat…"; ensureHistoryLoaded(); });
