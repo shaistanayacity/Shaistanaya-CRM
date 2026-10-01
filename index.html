@@ -444,6 +444,7 @@
   .kpi-bar { display: inline-block; vertical-align: middle; width: 70px; height: 6px; background: var(--panel-sunken); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-right: 6px; }
   .kpi-bar i { display: block; height: 100%; background: var(--accent); }
   table.kpi th, table.kpi td { white-space: nowrap; }
+  .kpi-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--urgent); text-decoration: underline; cursor: pointer; }
   table.leads tbody tr { cursor: pointer; }
   table.leads tbody tr:hover td { background: var(--panel-sunken); }
   .badge {
@@ -1798,21 +1799,21 @@
     if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
-  function leadsToCsv(list) {
-    var headers = ["Tanggal", "Jam Masuk", "Jam Respon", "Sumber", "Nama", "No Telp", "Domisili",
-      "Minat/Unit", "Tahap", "Funnel", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir", "Follow Up Berikutnya", "Jadwal Survey"];
+  function leadsToCsv(list, withOwner) {
+    var headers = (withOwner ? ["Marketing"] : []).concat(["Tanggal", "Jam Masuk", "Jam Respon", "Sumber", "Nama", "No Telp", "Domisili",
+      "Minat/Unit", "Tahap", "Funnel", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir", "Follow Up Berikutnya", "Jadwal Survey"]);
     var rows = [headers.map(csvEscape).join(",")];
     list.forEach(function (l) {
       var d = new Date(l.createdAt);
       var tanggal = d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
       var catatanTerakhir = l.notes && l.notes.length ? l.notes[l.notes.length - 1].text : "";
-      rows.push([
+      rows.push((withOwner ? [memberLabel(l.owner)] : []).concat([
         tanggal, fmtTime(l.createdAt), l.respondedAt ? fmtTime(l.respondedAt) : "",
         l.source, l.nama, '="' + normPhone(l.telp) + '"', l.domisili, l.minat,
         STAGE_LABEL[l.stage] || l.stage, leadTemperature(l), daysSinceContact(l), followUpCount(l), catatanTerakhir,
         l.nextAt ? l.nextAt + (l.nextNote ? " · " + l.nextNote : "") : "",
         l.surveyAt ? dayKeyLocal(new Date(l.surveyAt)) + " " + jamLabel(l.surveyAt) : ""
-      ].map(csvEscape).join(","));
+      ]).map(csvEscape).join(","));
     });
     return rows.join("\r\n");
   }
@@ -3101,7 +3102,7 @@
       html += '<td class="mono"><strong>' + k.deal + '</strong></td>';
       html += '<td class="mono">' + k.lost + '</td>';
       html += '<td class="mono">' + k.hot + '</td>';
-      html += '<td class="mono' + (k.stale ? ' stale-cell' : '') + '">' + k.stale + '</td>';
+      html += '<td class="mono' + (k.stale ? ' stale-cell' : '') + '">' + (k.stale ? '<button type="button" class="kpi-link" data-stale="' + escapeHtml(r.m.email) + '" title="Lihat lead yang telat di-follow up">' + k.stale + '</button>' : '0') + '</td>';
       html += '</tr>';
     });
     html += '</tbody></table></div></div>';
@@ -3114,6 +3115,7 @@
       if (teamFilters.who && l.owner !== teamFilters.who) return false;
       if (teamFilters.stage) {
         if (teamFilters.stage === "Aktif") { if (!activeLead(l)) return false; }
+        else if (teamFilters.stage === "Stale") { if (!isStale(l)) return false; }
         else if (l.stage !== teamFilters.stage) return false;
       }
       if (q) {
@@ -3129,14 +3131,15 @@
     teamMembers.forEach(function (m) { html += '<option value="' + escapeHtml(m.email) + '"' + (teamFilters.who === m.email ? " selected" : "") + '>' + escapeHtml(m.nama || m.email) + '</option>'; });
     html += '</select></div>';
     html += '<div class="field-wrap"><label for="t-stage">Tahap</label><select id="t-stage">';
-    [["", "Semua tahap"], ["Aktif", "Prospek aktif"], ["Masuk", "Masuk"], ["Direspon", "Direspon"], ["Follow Up", "Follow Up"], ["Janjian", "Janjian (Survey)"], ["Deal", "Deal"], ["Lost", "Hilang"]].forEach(function (o) {
+    [["", "Semua tahap"], ["Aktif", "Prospek aktif"], ["Stale", "Butuh Follow Up (≥2 hari)"], ["Masuk", "Masuk"], ["Direspon", "Direspon"], ["Follow Up", "Follow Up"], ["Janjian", "Janjian (Survey)"], ["Deal", "Deal"], ["Lost", "Hilang"]].forEach(function (o) {
       html += '<option value="' + o[0] + '"' + (teamFilters.stage === o[0] ? " selected" : "") + '>' + o[1] + '</option>';
     });
     html += '</select></div>';
     html += '<div class="field-wrap"><label for="t-q">Cari nama / no. telp</label><input type="text" id="t-q" value="' + escapeHtml(teamFilters.q) + '" placeholder="cth. Dewi atau 0812…"></div>';
     html += '</div>';
     html += '<div class="filter-summary"><span class="hint" style="margin:0">Menampilkan ' + list.length + ' lead' + (historyLoaded ? '' : ' · lead Deal/Hilang &gt;' + RECENT_DAYS + ' hari belum dimuat') + '</span>' +
-      (historyLoaded ? '' : '<button type="button" class="ghost" id="t-history">Muat riwayat lama</button>') + '</div>';
+      '<span style="display:flex;gap:8px;flex-wrap:wrap">' + (historyLoaded ? '' : '<button type="button" class="ghost" id="t-history">Muat riwayat lama</button>') +
+      '<button type="button" class="ghost" id="t-export">⬇ Export CSV</button></span></div>';
 
     if (!list.length) {
       html += '<div class="empty">Belum ada lead marketing untuk filter ini.</div>';
@@ -3175,6 +3178,18 @@
     el.innerHTML = html;
 
     document.getElementById("t-period").addEventListener("change", function (e) { teamFilters.period = e.target.value; renderTeamView(); });
+    el.querySelectorAll("[data-stale]").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        teamFilters.who = b.getAttribute("data-stale");
+        teamFilters.stage = "Stale";
+        teamFilters.period = "all";
+        renderTeamView();
+        ensureHistoryLoaded();
+        var t = document.getElementById("t-who");
+        if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
     el.querySelectorAll("tr[data-who]").forEach(function (r) {
       r.addEventListener("click", function () {
         teamFilters.who = teamFilters.who === r.getAttribute("data-who") ? "" : r.getAttribute("data-who");
@@ -3189,6 +3204,28 @@
       renderTeamView();
       var again = document.getElementById("t-q");
       if (again) { again.focus(); try { again.setSelectionRange(c, c); } catch (err) {} }
+    });
+    document.getElementById("t-export").addEventListener("click", async function () {
+      if (!list.length) { showToast("Tidak ada lead buat diexport"); return; }
+      if (teamFilters.period === "all" && !historyLoaded) {
+        showToast("Memuat riwayat lama dulu…");
+        if (!(await ensureHistoryLoaded())) return;
+        renderTeamView();
+        document.getElementById("t-export").click();
+        return;
+      }
+      var who = teamFilters.who ? memberLabel(teamFilters.who).toLowerCase() : "semua-marketing";
+      var tag = (teamFilters.period === "all" ? "semua-waktu" : teamFilters.period + "-hari") + (teamFilters.stage ? "-" + teamFilters.stage.toLowerCase().replace(/\s+/g, "") : "");
+      try {
+        var blob = new Blob(["\uFEFF" + leadsToCsv(list, true)], { type: "text/csv;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "lead-marketing-" + who + "-" + tag + "-" + dayKeyLocal(new Date()) + ".csv";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        showToast("CSV tersimpan");
+      } catch (e) { showToast("Export gagal, coba lagi"); }
     });
     var hb = document.getElementById("t-history");
     if (hb) hb.addEventListener("click", function () { hb.disabled = true; hb.textContent = "Memuat…"; ensureHistoryLoaded(); });
