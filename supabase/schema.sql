@@ -98,25 +98,29 @@ drop policy if exists "leads update" on public.leads;
 drop policy if exists "leads delete admin" on public.leads;
 drop policy if exists "leads delete" on public.leads;
 create policy "leads select" on public.leads for select to authenticated
-  using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
+  using ((select private.is_admin()) or (owner_email = lower(coalesce((select auth.jwt() ->> 'email'), '')) and (select private.is_team_member())));
 create policy "leads insert" on public.leads for insert to authenticated
-  with check ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
+  with check ((select private.is_admin()) or (owner_email = lower(coalesce((select auth.jwt() ->> 'email'), '')) and (select private.is_team_member())));
 create policy "leads update" on public.leads for update to authenticated
-  using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())))
-  with check ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
+  using ((select private.is_admin()) or (owner_email = lower(coalesce((select auth.jwt() ->> 'email'), '')) and (select private.is_team_member())))
+  with check ((select private.is_admin()) or (owner_email = lower(coalesce((select auth.jwt() ->> 'email'), '')) and (select private.is_team_member())));
 create policy "leads delete" on public.leads for delete to authenticated
-  using ((select private.is_admin()) or (owner_email = lower(coalesce(auth.jwt() ->> 'email', '')) and (select private.is_team_member())));
+  using ((select private.is_admin()) or (owner_email = lower(coalesce((select auth.jwt() ->> 'email'), '')) and (select private.is_team_member())));
 
 drop policy if exists "team can read cluster notes" on public.cluster_notes;
 drop policy if exists "admin writes cluster notes" on public.cluster_notes;
+drop policy if exists "admin inserts cluster notes" on public.cluster_notes;
+drop policy if exists "admin updates cluster notes" on public.cluster_notes;
+drop policy if exists "admin deletes cluster notes" on public.cluster_notes;
 create policy "team can read cluster notes" on public.cluster_notes
   for select to authenticated using ((select private.is_team_member()));
-create policy "admin writes cluster notes" on public.cluster_notes
-  for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+create policy "admin inserts cluster notes" on public.cluster_notes for insert to authenticated with check ((select private.is_admin()));
+create policy "admin updates cluster notes" on public.cluster_notes for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+create policy "admin deletes cluster notes" on public.cluster_notes for delete to authenticated using ((select private.is_admin()));
 
 drop policy if exists "team members read" on public.team_members;
 create policy "team members read" on public.team_members for select to authenticated
-  using ((select private.is_admin()) or email = lower(coalesce(auth.jwt() ->> 'email', '')));
+  using ((select private.is_admin()) or email = lower(coalesce((select auth.jwt() ->> 'email'), '')));
 
 -- Daftar tim (buat user-nya di Authentication → Users, lalu daftarkan di sini):
 -- insert into public.team_members(email, nama, role) values
