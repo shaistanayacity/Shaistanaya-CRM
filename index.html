@@ -2438,16 +2438,10 @@
     { id: "fu1", nama: "Follow up 1", when: "H+1 setelah chat terakhir", text: function (c) { return "Halo Kak " + c.p + ", kemarin sempat tanya " + c.unit + " ya. Mau saya kirimkan simulasi cicilan sesuai budget Kakak? Supaya gambarannya lebih jelas."; } },
     { id: "fu2", nama: "Follow up 2", when: "H+2, bawa info baru", text: function (c) { return "Halo Kak " + c.p + ", ada info untuk " + c.unit + ": lokasinya 9 menit dari Gate Tol Sidoarjo dan kawasannya bebas banjir. Kalau Kakak mau lihat langsung, bisa saya aturkan survey."; } },
     { id: "fu3", nama: "Follow up 3", when: "Terakhir, tanpa menekan", text: function (c) { return "Halo Kak " + c.p + ", saya follow up terakhir ya. Kalau Kakak masih mempertimbangkan " + c.unit + ", saya siap bantu jawab pertanyaan apa pun. Kalau belum waktunya tidak apa-apa, kabari saja kapan nyaman dihubungi lagi."; } },
-    { id: "survey", nama: "Ajakan survey", when: "Beri 2 pilihan jam", text: function (c) { return "Halo Kak " + c.p + ", supaya lebih yakin dengan " + c.unit + ", yuk lihat langsung ke lokasi. " + c.s1 + " atau " + c.s2 + ", Kakak lebih cocok yang mana? Nanti saya siapkan unitnya dan kirim titik lokasinya."; } },
+    { id: "survey", nama: "Ajakan survey", when: "Tanya kapan dia kosong", text: function (c) { return "Halo Kak " + c.p + ", supaya lebih yakin dengan " + c.unit + ", yuk lihat langsung ke lokasi. Kira-kira Kakak kosong hari dan jam berapa untuk survey? Nanti saya sesuaikan jadwalnya, siapkan unitnya, dan kirim titik lokasinya."; } },
     { id: "konfirmasi", nama: "Konfirmasi survey", when: "H-1 sebelum survey", text: function (c) { return "Halo Kak " + c.p + ", mengingatkan besok " + c.sv + " kita survey " + c.unit + " di Shaistanaya City. Titik lokasi:\nhttps://maps.app.goo.gl/wAZueQ4wv9dBMt7w8\n\nKakak berangkat dari mana? Kalau ada perubahan jadwal, kabari saya ya."; } },
     { id: "pasca", nama: "Setelah survey", when: "Maksimal 24 jam setelah survey", text: function (c) { return "Terima kasih sudah survey tadi, Kak " + c.p + ". Bagaimana kesan Kakak untuk " + c.unit + "? Kalau ada yang ingin didiskusikan, misalnya simulasi cicilan, saya siap bantu hari ini."; } }
   ];
-  function surveySlots() {
-    var sat = (6 - new Date().getDay() + 7) % 7; if (sat < 2) sat += 7;
-    function mk(id, off, jam) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return { id: id, date: d, jam: jam }; }
-    return [mk("s1", sat, "10.00"), mk("s2", sat, "14.00"), mk("s3", sat + 1, "10.00"), mk("s4", sat + 1, "14.00")];
-  }
-  function slotText(s) { return DAY_NAMES[s.date.getDay()] + " " + s.date.getDate() + " " + MON_NAMES[s.date.getMonth()] + " jam " + s.jam; }
 
   // ----- objection answers (stored as notes so the team can edit them in the Playbook) -----
   var OBJECTIONS = [
@@ -2660,9 +2654,8 @@
 
   // ----- WhatsApp modal -----
   function waCtx(l, m) {
-    var slots = surveySlots(), pick = m.slots.map(function (id) { return slots.filter(function (s) { return s.id === id; })[0]; });
     var sv = l.surveyAt ? DAY_NAMES[new Date(l.surveyAt).getDay()] + " jam " + jamLabel(l.surveyAt) : "(jadwal survey)";
-    return { p: String(l.nama).indexOf("(") === 0 ? "" : String(l.nama).split(" ")[0], unit: (l.minat && l.minat !== "—") ? l.minat : "unit di Shaistanaya City", s1: slotText(pick[0]), s2: slotText(pick[1] || pick[0]), sv: sv };
+    return { p: String(l.nama).indexOf("(") === 0 ? "" : String(l.nama).split(" ")[0], unit: (l.minat && l.minat !== "—") ? l.minat : "unit di Shaistanaya City", sv: sv };
   }
   function waText(l, m) {
     var t = WA_TEMPLATES.filter(function (x) { return x.id === m.tpl; })[0];
@@ -2677,7 +2670,7 @@
     var l = leads.find(function (x) { return x.id === id; });
     if (!l) return;
     if (normPhone(l.telp).length < 9) { showToast("Nomor telepon lead ini belum valid. Perbaiki lewat Ubah data."); return; }
-    waModal = { id: id, tpl: tpl, slots: ["s1", "s2"], step: 1, msg: "", log: true, custom: !!custom };
+    waModal = { id: id, tpl: tpl, step: 1, msg: "", log: true, custom: !!custom };
     waModal.msg = custom || waText(l, waModal);
     draftNext = defaultNextFor(tpl);
     renderWaModal();
@@ -2693,13 +2686,7 @@
       var list = WA_TEMPLATES.map(function (t) {
         return '<button type="button" class="mdl-tpl" data-x="wa-tpl" data-t="' + t.id + '" aria-pressed="' + (m.tpl === t.id) + '"><b>' + t.nama + (t.id === reco ? ' <span class="mdl-reco">Disarankan</span>' : "") + '</b><small>' + t.when + '</small></button>';
       }).join("");
-      var slots = "";
-      if (m.tpl === "survey") {
-        slots = '<div><span class="k">Pilih 2 jadwal untuk ditawarkan</span><div class="nx-chips" style="margin-top:6px">' + surveySlots().map(function (s) {
-          return '<button type="button" class="tg-chip" data-x="wa-slot" data-s="' + s.id + '" aria-pressed="' + (m.slots.indexOf(s.id) > -1) + '">' + slotText(s).replace(" jam ", " · ") + '</button>';
-        }).join("") + '</div></div>';
-      }
-      body = '<div class="mdl-body"><div class="mdl-list">' + list + '</div><div class="mdl-preview">' + slots +
+      body = '<div class="mdl-body"><div class="mdl-list">' + list + '</div><div class="mdl-preview">' +
         '<div><span class="k" style="display:block;margin-bottom:6px">Pesan, bisa diedit</span><textarea data-xin="msg">' + escapeHtml(m.msg) + '</textarea></div>' +
         '<p class="hint" style="margin:0">Tombol Buka WhatsApp membuka chat ke nomor ini dengan pesan di atas sudah terisi. Pesan baru terkirim setelah kamu menekan kirim di WhatsApp.</p></div></div>' +
         '<div class="mdl-foot"><button type="button" class="ghost" data-x="wa-close">Batal</button><button type="button" class="ghost" data-x="wa-copy">Salin pesan</button><button type="button" class="primary" data-x="wa-send">' + WA_ICON + ' Buka WhatsApp</button></div>';
@@ -2787,11 +2774,6 @@
     var m = waModal, ml = leads.find(function (x) { return x.id === m.id; });
     if (a === "wa-close") { waModal = null; renderWaModal(); return; }
     if (a === "wa-tpl") { m.tpl = t.getAttribute("data-t"); m.custom = false; m.msg = waText(ml, m); draftNext = defaultNextFor(m.tpl); renderWaModal(); return; }
-    if (a === "wa-slot") {
-      var sid = t.getAttribute("data-s"), i = m.slots.indexOf(sid);
-      if (i > -1) { if (m.slots.length > 1) m.slots.splice(i, 1); } else { m.slots.push(sid); if (m.slots.length > 2) m.slots.shift(); }
-      m.msg = waText(ml, m); renderWaModal(); return;
-    }
     if (a === "wa-copy") {
       var ok = function () { showToast("Pesan disalin."); };
       var fb = function () { var ta = document.querySelector('#wa-modal textarea'); if (ta) ta.select(); showToast("Pesan dipilih, tekan salin."); };
