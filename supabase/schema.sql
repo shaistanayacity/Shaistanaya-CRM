@@ -15,6 +15,13 @@ create table if not exists public.leads (
   loss_rank     smallint,
   notes         jsonb not null default '[]'::jsonb,
   signals       jsonb not null default '[]'::jsonb,  -- temperature checklist ids
+  next_at       date,                                   -- follow-up berikutnya
+  next_note     text,
+  survey_at     timestamptz,                            -- jadwal survey
+  ajak_at       timestamptz,                            -- ajakan survey terkirim
+  konfirm_at    timestamptz,                            -- konfirmasi survey terkirim
+  done_at       timestamptz,                            -- terakhir ditandai selesai di Tugas Hari Ini
+  objections    jsonb not null default '[]'::jsonb,     -- alasan keberatan yang dicatat [{r, ts}]
   updated_at    timestamptz not null default now()
 );
 

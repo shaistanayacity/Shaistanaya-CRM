@@ -26,6 +26,7 @@
     --muted: #767B85;
     --accent: #A8812F;
     --accent-text: #7A5C1B;
+    --urgent: #8A4B0F;
     --accent-ink: #FFFFFF;
     --accent-soft: #F3EAD3;
     --success: #1F8A4C;
@@ -52,6 +53,7 @@
       --muted: #9599A2;
       --accent: #C9A24B;
       --accent-text: #E2C273;
+      --urgent: #E3A857;
       --accent-ink: #17110C;
       --accent-soft: #382E17;
       --success: #4ADE80;
@@ -73,6 +75,7 @@
     --muted: #9599A2;
     --accent: #C9A24B;
     --accent-text: #E2C273;
+    --urgent: #E3A857;
     --accent-ink: #17110C;
     --accent-soft: #382E17;
     --success: #4ADE80;
@@ -267,7 +270,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .app-loading.error::before { display: none; }
-  .app-loading.error { color: var(--danger); }
+  .app-loading.error { color: var(--urgent); }
   @media (prefers-reduced-motion: reduce) { .app-loading::before { animation: none; } }
 
   .page-header {
@@ -423,8 +426,8 @@
   .badge.s-followup { background: var(--warning-soft); color: var(--warning); }
   .badge.s-janjian { background: var(--warning-soft); color: var(--warning); }
   .badge.s-deal { background: var(--success-soft); color: var(--success); }
-  .badge.s-lost { background: var(--danger-soft); color: var(--danger); }
-  .badge.t-hot { background: var(--danger); color: var(--panel); }
+  .badge.s-lost { background: var(--panel-sunken); color: var(--urgent); border: 1px solid var(--line-strong); }
+  .badge.t-hot { background: var(--ink); color: var(--panel); }
   .badge.t-warm { background: var(--warning-soft); color: var(--warning); }
   .badge.t-cold { background: var(--panel-sunken); color: var(--muted); border: 1px solid var(--line-strong); }
   .badge.t-none { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
@@ -435,7 +438,7 @@
   .signals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
   .signal-group .sg-title { font-size: 0.76rem; font-weight: 700; margin-bottom: 6px; }
   .signal-group .sg-title span { font-weight: 400; color: var(--muted); }
-  .sg-strong .sg-title { color: var(--danger); }
+  .sg-strong .sg-title { color: var(--accent-text); }
   .sg-medium .sg-title { color: var(--warning); }
   .sg-negative .sg-title { color: var(--muted); }
   .signal-group .checkbox-label { font-size: 0.8rem; align-items: flex-start; margin-bottom: 6px; line-height: 1.35; }
@@ -444,8 +447,8 @@
   .sla-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
   .sla-good { background: var(--success); }
   .sla-mid { background: var(--warning); }
-  .sla-bad { background: var(--danger); }
-  .stale-cell { color: var(--danger); font-weight: 600; }
+  .sla-bad { background: var(--urgent); }
+  .stale-cell { color: var(--urgent); font-weight: 600; }
 
   .detail-row td { background: var(--panel-sunken); cursor: default; }
   .detail-row:hover td { background: var(--panel-sunken); }
@@ -469,12 +472,12 @@
   .strategy-head { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 5px; }
   .strategy-goal { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
   .strategy-contact { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
-  .strategy-contact.warn { color: var(--danger); font-weight: 600; }
+  .strategy-contact.warn { color: var(--urgent); font-weight: 600; }
   .strategy-actions { margin: 0 0 8px; padding-left: 17px; font-size: 0.82rem; }
   .strategy-actions li { margin-bottom: 4px; }
   .strategy-script { background: var(--panel); border-radius: var(--radius-md); padding: 8px 10px; font-size: 0.8rem; font-style: italic; margin-bottom: 8px; }
   .strategy-script .k { font-style: normal; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 3px; }
-  .strategy-avoid { font-size: 0.78rem; color: var(--danger); }
+  .strategy-avoid { font-size: 0.78rem; color: var(--urgent); }
   .strategy-cluster { background: var(--panel); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; }
   .strategy-cluster .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 5px; }
   .cluster-note-text { font-size: 0.82rem; margin-bottom: 9px; line-height: 1.45; }
@@ -599,9 +602,9 @@
   .dup-warn .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   button.danger {
     appearance: none;
-    border: 1px solid var(--danger);
+    border: 1px solid var(--urgent);
     background: transparent;
-    color: var(--danger);
+    color: var(--urgent);
     font: inherit;
     font-size: 0.82rem;
     font-weight: 600;
@@ -609,7 +612,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
   }
-  button.danger:hover { background: var(--danger-soft); }
+  button.danger:hover { background: var(--warning-soft); }
   .brand-tools { margin-left: auto; display: flex; gap: 6px; align-self: center; }
   .icon-btn {
     appearance: none;
@@ -708,7 +711,7 @@
     color: var(--ink);
   }
   .login-card button.primary { width: 100%; margin-top: 4px; }
-  .login-error { color: var(--danger); font-size: 0.8rem; min-height: 1.2em; margin: 8px 0 0; }
+  .login-error { color: var(--urgent); font-size: 0.8rem; min-height: 1.2em; margin: 8px 0 0; }
   .account { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
   .account[hidden] { display: none; }
   .account .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -815,6 +818,106 @@
     .sidebar nav.tabs::-webkit-scrollbar { display: none; }
     .sidebar nav.tabs button { flex: none; scroll-snap-align: center; }
   }
+
+  /* ---------- Tugas Hari Ini, WhatsApp templates, objections ---------- */
+  .nav-count { margin-left: auto; font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; background: var(--sb-ink); color: #fff; }
+  .nav-count:empty { display: none; }
+  .sidebar nav.tabs button { position: relative; }
+  :root[data-theme="dark"] .nav-count { color: #2A1A04; background: #FFF6DF; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav-count { color: #2A1A04; background: #FFF6DF; } }
+
+  .btn-gold { appearance: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 0.82rem; font-weight: 700; padding: 7px 14px; border-radius: var(--radius-md); cursor: pointer; white-space: nowrap; }
+  .btn-gold:hover { filter: brightness(1.07); }
+  .tone-urgent { color: var(--urgent); }
+  .tone-amber { color: var(--warning); }
+  .tone-ink { color: var(--ink); }
+
+  .tg-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .tg-progress .track { flex: 1; height: 8px; background: var(--panel-sunken); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .tg-progress .fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.4s ease; }
+  .tg-progress b { font-size: 0.85rem; white-space: nowrap; }
+  .tg-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tg-chip { appearance: none; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); font: inherit; border-radius: 999px; padding: 5px 12px; font-size: 0.8rem; cursor: pointer; }
+  .tg-chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); font-weight: 600; }
+  .tg-sec { display: flex; align-items: baseline; gap: 8px; margin: 22px 0 8px; flex-wrap: wrap; }
+  .tg-sec h3 { margin: 0; font-size: 0.95rem; }
+  .tg-sec span { color: var(--muted); font-size: 0.78rem; }
+  .tg-list { display: flex; flex-direction: column; gap: 8px; }
+  .tg-task { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .tg-task.is-done { opacity: 0.6; }
+  .tg-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); display: grid; place-items: center; font-weight: 700; font-size: 0.82rem; flex: none; }
+  .tg-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  .tg-name { appearance: none; background: none; border: 0; padding: 0; font: inherit; font-weight: 700; font-size: 0.95rem; color: var(--ink); cursor: pointer; text-align: left; }
+  .tg-name:hover { text-decoration: underline; }
+  .tg-meta { color: var(--muted); font-size: 0.78rem; }
+  .tg-badges { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 2px; }
+  .tg-reason { margin: 3px 0 0; font-size: 0.82rem; font-weight: 600; }
+  .tg-next { margin: 1px 0 0; font-size: 0.78rem; color: var(--muted); }
+  .tg-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .tg-sheet { grid-column: 1 / -1; border-top: 1px dashed var(--line-strong); padding-top: 12px; }
+  .tg-empty { text-align: center; color: var(--muted); font-size: 0.88rem; padding: 26px 10px; }
+  .tg-done summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-top: 22px; }
+
+  .nx-editor { display: flex; flex-direction: column; gap: 10px; }
+  .nx-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .nx-chips input[type=date], .nx-chips input[type=datetime-local] { width: auto; padding: 5px 9px; font-size: 0.8rem; }
+  .nx-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .nx-wrap { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .nx-card { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; background: var(--panel); min-width: 0; }
+  .nx-card.nx-full { grid-column: 1 / -1; }
+  .nx-card h4 { margin: 0 0 2px; font-size: 0.9rem; }
+  .nx-card .k { margin-bottom: 4px; }
+  .nx-when { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 2px; }
+  .nx-when b { font-size: 1rem; }
+  .nx-late { color: var(--urgent); font-weight: 700; font-size: 0.8rem; }
+  .nx-ok { color: var(--success); font-weight: 700; font-size: 0.8rem; }
+  .nx-text { margin: 0 0 10px; font-size: 0.86rem; }
+  .nx-muted { color: var(--muted); font-size: 0.84rem; margin: 6px 0 8px; }
+  .obj-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .obj-answer { background: var(--accent-soft); border-radius: var(--radius-md); padding: 12px 14px; margin-top: 12px; }
+  .obj-answer .quote { font-size: 0.86rem; font-style: italic; margin: 0 0 10px; }
+  .obj-answer ul { margin: 0 0 10px; padding-left: 18px; font-size: 0.82rem; }
+  .obj-answer li { margin-bottom: 3px; }
+  .obj-avoid { font-size: 0.78rem; color: var(--urgent); margin: 0 0 10px; }
+
+  .mdl-overlay { position: fixed; inset: 0; background: rgba(20, 22, 26, 0.5); display: flex; align-items: center; justify-content: center; padding: 18px; z-index: 65; }
+  .mdl { background: var(--panel); color: var(--ink); border-radius: 18px; width: min(880px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+  .mdl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .mdl-head h3 { margin: 0; font-size: 1rem; }
+  .mdl-head .sub { color: var(--muted); font-size: 0.78rem; }
+  .mdl-x { appearance: none; border: 0; background: var(--panel-sunken); color: var(--ink); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1; flex: none; }
+  .mdl-body { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: 0; overflow: auto; }
+  .mdl-list { border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 4px; background: var(--panel-sunken); }
+  .mdl-tpl { appearance: none; text-align: left; border: 1px solid transparent; background: transparent; color: var(--ink); font: inherit; border-radius: 10px; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+  .mdl-tpl:hover { background: var(--panel); }
+  .mdl-tpl[aria-pressed="true"] { background: var(--panel); border-color: var(--line-strong); box-shadow: 0 1px 3px rgba(20, 20, 20, 0.06); }
+  .mdl-tpl b { font-size: 0.84rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .mdl-tpl small { color: var(--muted); font-size: 0.72rem; }
+  .mdl-reco { font-size: 0.62rem; font-weight: 700; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 1px 7px; }
+  .mdl-preview { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .mdl-preview textarea { width: 100%; min-height: 150px; resize: vertical; font: inherit; font-size: 0.9rem; line-height: 1.5; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel-sunken); color: var(--ink); }
+  .mdl-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--line); }
+  .mdl-step2 { padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+  .mdl-check { display: flex; gap: 8px; align-items: center; font-size: 0.88rem; }
+  .mdl-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+  @media (max-width: 800px) {
+    .nx-wrap { grid-template-columns: minmax(0, 1fr); }
+    .tg-task { grid-template-columns: auto minmax(0, 1fr); }
+    .tg-actions { grid-column: 1 / -1; justify-content: flex-start; }
+    .mdl-overlay { align-items: flex-end; padding: 0; }
+    .mdl { border-radius: 18px 18px 0 0; max-height: 94%; }
+    .mdl-body { grid-template-columns: minmax(0, 1fr); }
+    .mdl-list { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+    .mdl-list::-webkit-scrollbar { display: none; }
+    .mdl-tpl { flex: none; min-width: 120px; border-color: var(--line-strong); background: var(--panel); }
+    .mdl-tpl small { display: none; }
+    .mdl-foot button { flex: 1 1 auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tg-progress .fill { transition: none; } }
+
+  button.wa-btn { font-family: inherit; cursor: pointer; }
+  .mdl .hint, .nx-card .hint { color: var(--muted); font-size: 0.78rem; }
 </style>
 </head>
 <body>
@@ -839,6 +942,10 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="1.5" width="6" height="6" rx="0.5"/><rect x="8.5" y="1.5" width="6" height="4" rx="0.5"/><rect x="8.5" y="7.5" width="6" height="7" rx="0.5"/><rect x="1.5" y="9.5" width="6" height="5" rx="0.5"/></svg>
         <span>Dashboard</span>
       </button>
+      <button data-view="tugas">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 8.2l2 2 4-4.4"/></svg>
+        <span>Tugas Hari Ini</span><span class="nav-count" id="tg-count"></span>
+      </button>
       <button data-view="all">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="1.5" width="13" height="13" rx="0.5"/><line x1="1.5" y1="6" x2="14.5" y2="6"/><line x1="1.5" y1="10" x2="14.5" y2="10"/></svg>
         <span>Semua Lead</span>
@@ -862,11 +969,13 @@
   <main class="content">
     <div id="app-loading" class="app-loading show">Memuat data…</div>
     <section id="view-dashboard" class="view active"></section>
+    <section id="view-tugas" class="view"></section>
     <section id="view-all" class="view"></section>
     <section id="view-input" class="view"></section>
     <section id="view-playbook" class="view"></section>
   </main>
 </div>
+<div id="wa-modal"></div>
 <div class="toast" id="toast"></div>
 
 <div class="login-overlay" id="login-overlay">
@@ -1210,7 +1319,14 @@
       stage: l.stage,
       loss_rank: l.lossRank,
       notes: l.notes || [],
-      signals: l.signals || []
+      signals: l.signals || [],
+      next_at: l.nextAt || null,
+      next_note: l.nextNote || null,
+      survey_at: l.surveyAt || null,
+      ajak_at: l.ajakAt || null,
+      konfirm_at: l.konfirmAt || null,
+      done_at: l.doneAt || null,
+      objections: l.objections || []
     };
   }
   function rowToLead(r) {
@@ -1226,7 +1342,14 @@
       stage: r.stage,
       lossRank: r.loss_rank,
       notes: r.notes || [],
-      signals: r.signals || []
+      signals: r.signals || [],
+      nextAt: r.next_at || null,
+      nextNote: r.next_note || "",
+      surveyAt: r.survey_at || null,
+      ajakAt: r.ajak_at || null,
+      konfirmAt: r.konfirm_at || null,
+      doneAt: r.done_at || null,
+      objections: r.objections || []
     };
   }
 
@@ -1395,6 +1518,10 @@
   function waButton(lead, compact) {
     var href = waLink(lead);
     if (!href) return "";
+    if (!compact) {
+      return (hotNoSurvey(lead) ? '<button type="button" class="btn-gold" data-x="wa" data-id="' + lead.id + '" data-tpl="survey">Ajak survey</button>' : "") +
+        '<button type="button" class="wa-btn" data-x="wa" data-id="' + lead.id + '" data-tpl="' + recoTemplate(lead) + '" title="Pilih pesan WhatsApp untuk ' + escapeHtml(lead.telp) + '">' + WA_ICON + '<span>Chat WA</span></button>';
+    }
     return '<a class="wa-btn' + (compact ? ' compact' : '') + '" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" data-wa title="Chat WhatsApp ' + escapeHtml(lead.telp) + '">' +
       WA_ICON + (compact ? '' : '<span>Chat WA</span>') + '</a>';
   }
@@ -1615,7 +1742,7 @@
   }
   function leadsToCsv(list) {
     var headers = ["Tanggal", "Jam Masuk", "Jam Respon", "Sumber", "Nama", "No Telp", "Domisili",
-      "Minat/Unit", "Tahap", "Funnel", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir"];
+      "Minat/Unit", "Tahap", "Funnel", "Hari Sejak Kontak Terakhir", "Jumlah Follow Up", "Catatan Terakhir", "Follow Up Berikutnya", "Jadwal Survey"];
     var rows = [headers.map(csvEscape).join(",")];
     list.forEach(function (l) {
       var d = new Date(l.createdAt);
@@ -1624,7 +1751,9 @@
       rows.push([
         tanggal, fmtTime(l.createdAt), l.respondedAt ? fmtTime(l.respondedAt) : "",
         l.source, l.nama, '="' + normPhone(l.telp) + '"', l.domisili, l.minat,
-        STAGE_LABEL[l.stage] || l.stage, leadTemperature(l), daysSinceContact(l), followUpCount(l), catatanTerakhir
+        STAGE_LABEL[l.stage] || l.stage, leadTemperature(l), daysSinceContact(l), followUpCount(l), catatanTerakhir,
+        l.nextAt ? l.nextAt + (l.nextNote ? " · " + l.nextNote : "") : "",
+        l.surveyAt ? dayKeyLocal(new Date(l.surveyAt)) + " " + jamLabel(l.surveyAt) : ""
       ].map(csvEscape).join(","));
     });
     return rows.join("\r\n");
@@ -1892,6 +2021,8 @@
     html += '<div class="funnel-note">' + lostCount + ' lead ditandai hilang (di berbagai tahap) · target respon awal: 15 menit — bisa disesuaikan</div>';
     html += '</div>';
 
+    html += objectionPanelHtml(range);
+
     html += '<div class="panel">';
     html += '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">';
     html += '<h2 style="margin:0">Lead Terbaru</h2>';
@@ -2009,6 +2140,7 @@
     html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
     html += '</span></div>';
 
+    html += followUpCardsHtml(l);
     html += renderSignalChecklist(l);
     html += '<div class="strategy-wrap">' + buildStrategyHtml(l) + '</div>';
 
@@ -2200,11 +2332,492 @@
     refreshAll();
   }
 
+  // ---------- Follow-up, survey invitations & WhatsApp templates ----------
+
+  var DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  var MON_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  function dateFromKey(k) { var p = String(k).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function keyOffset(n) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return dayKeyLocal(d); }
+  function daysFromToday(k) { var t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((dateFromKey(k) - t) / 86400000); }
+  function dayShortLabel(d) { return DAY_NAMES[d.getDay()] + ", " + d.getDate() + " " + MON_NAMES[d.getMonth()]; }
+  function dayLabelKey(k) {
+    var n = daysFromToday(k), s = dayShortLabel(dateFromKey(k));
+    if (n === 0) return "Hari ini";
+    if (n === 1) return "Besok · " + s;
+    if (n === -1) return "Kemarin · " + s;
+    return s;
+  }
+  function isSameDay(iso, key) { return !!iso && dayKeyLocal(new Date(iso)) === key; }
+  function jamLabel(iso) { var d = new Date(iso); return pad2(d.getHours()) + "." + pad2(d.getMinutes()); }
+  function minutesSince(iso) { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000)); }
+  function durLabel(min) {
+    if (min < 60) return min + " menit";
+    if (min < 1440) return Math.floor(min / 60) + " jam";
+    return Math.floor(min / 1440) + " hari";
+  }
+  function initialsOf(n) {
+    var w = String(n).replace(/[()]/g, "").trim().split(/\s+/);
+    return ((w[0] || "?").charAt(0) + (w[1] ? w[1].charAt(0) : "")).toUpperCase();
+  }
+  function addNote(lead, text) { lead.notes = lead.notes || []; lead.notes.push({ ts: new Date().toISOString(), text: text }); }
+  function activeLead(l) { return !!ACTIVE_STAGES[l.stage]; }
+  function hotNoSurvey(l) { return activeLead(l) && leadTemperature(l) === "Hot" && !l.surveyAt && !l.ajakAt; }
+  function fuSent(l) {
+    return (l.notes || []).filter(function (n) { return n.text.indexOf("Chat WA dikirim: Follow up") === 0; }).length;
+  }
+
+  // ----- tasks -----
+  // Order of checks: not answered yet > survey tomorrow to confirm > Hot with no survey plan > follow-up due.
+  function computeTasks() {
+    var today = dayKeyLocal(new Date()), tomorrow = keyOffset(1), out = [];
+    leads.forEach(function (l) {
+      if (!activeLead(l)) return;
+      if (l.doneAt && isSameDay(l.doneAt, today)) return;
+      if (!l.respondedAt) { out.push({ l: l, type: "respon", rank: -minutesSince(l.createdAt) }); return; }
+      if (l.surveyAt && !l.konfirmAt && isSameDay(l.surveyAt, tomorrow)) {
+        out.push({ l: l, type: "konfirmasi", rank: new Date(l.surveyAt).getTime() });
+        return;
+      }
+      var n = l.nextAt ? daysFromToday(l.nextAt) : null;       // <0 late, 0 today
+      var due = l.nextAt ? n <= 0 : daysSinceContact(l) >= 2;   // no date set: fall back to "2+ days without contact"
+      if (!due) return;
+      var late = l.nextAt ? -n : daysSinceContact(l);
+      if (hotNoSurvey(l) && (l.nextAt ? n < 0 : true)) { out.push({ l: l, type: "hot", rank: -late }); return; }
+      out.push({ l: l, type: "fu", rank: -late });
+    });
+    out.sort(function (a, b) { return a.rank - b.rank; });
+    return out;
+  }
+  function doneTodayLeads() {
+    var today = dayKeyLocal(new Date());
+    return leads.filter(function (l) { return activeLead(l) && l.doneAt && isSameDay(l.doneAt, today); });
+  }
+  var TASK_TYPES = {
+    respon: { title: "Segera dibalas", sub: "target respon 15 menit" },
+    hot: { title: "Lead Hot yang butuh perhatian", sub: "belum ada jadwal survey" },
+    fu: { title: "Follow up hari ini", sub: "sesuai langkah berikutnya" },
+    konfirmasi: { title: "Konfirmasi survey besok", sub: "kirim pengingat ke lead" }
+  };
+  function taskReason(t) {
+    var l = t.l, n;
+    if (t.type === "respon") {
+      var m = minutesSince(l.createdAt);
+      return m > 15 ? { tone: "urgent", text: "Belum direspon " + durLabel(m) + ", lewat target 15 menit" }
+        : { tone: "amber", text: "Belum direspon " + m + " menit, " + (15 - m) + " menit lagi menuju batas" };
+    }
+    if (t.type === "konfirmasi") return { tone: "amber", text: "Survey besok jam " + jamLabel(l.surveyAt) + " · belum dikonfirmasi" };
+    if (t.type === "hot") {
+      var base = l.nextAt ? "Hot, follow up telat " + (-daysFromToday(l.nextAt)) + " hari" : "Hot, " + daysSinceContact(l) + " hari belum dihubungi";
+      return { tone: "urgent", text: base + " · belum ada jadwal survey" };
+    }
+    if (l.nextAt) {
+      n = daysFromToday(l.nextAt);
+      return n < 0 ? { tone: "urgent", text: "Follow up telat " + (-n) + " hari" } : { tone: "ink", text: "Follow up hari ini" };
+    }
+    return { tone: "amber", text: daysSinceContact(l) + " hari belum dihubungi" };
+  }
+  function recoTemplate(l) {
+    if (!l.respondedAt) return "pembuka";
+    if (l.surveyAt && !l.konfirmAt && isSameDay(l.surveyAt, keyOffset(1))) return "konfirmasi";
+    if (l.surveyAt && l.stage === "Janjian" && new Date(l.surveyAt) < new Date()) return "pasca";
+    if (hotNoSurvey(l)) return "survey";
+    return "fu" + Math.min(fuSent(l) + 1, 3);
+  }
+
+  // ----- message templates -----
+  var WA_TEMPLATES = [
+    { id: "pembuka", nama: "Pembuka", when: "Lead baru masuk", text: function (c) { return "Halo Kak " + c.p + ", terima kasih sudah menghubungi Shaistanaya City. Kakak tertarik dengan " + c.unit + ", ya? Boleh saya tahu rencananya untuk ditinggali sendiri atau investasi, dan kira-kira budget yang nyaman berapa?"; } },
+    { id: "fu1", nama: "Follow up 1", when: "H+1 setelah chat terakhir", text: function (c) { return "Halo Kak " + c.p + ", kemarin sempat tanya " + c.unit + " ya. Mau saya kirimkan simulasi cicilan sesuai budget Kakak? Supaya gambarannya lebih jelas."; } },
+    { id: "fu2", nama: "Follow up 2", when: "H+2, bawa info baru", text: function (c) { return "Halo Kak " + c.p + ", ada info untuk " + c.unit + ": lokasinya 9 menit dari Gate Tol Sidoarjo dan kawasannya bebas banjir. Kalau Kakak mau lihat langsung, bisa saya aturkan survey."; } },
+    { id: "fu3", nama: "Follow up 3", when: "Terakhir, tanpa menekan", text: function (c) { return "Halo Kak " + c.p + ", saya follow up terakhir ya. Kalau Kakak masih mempertimbangkan " + c.unit + ", saya siap bantu jawab pertanyaan apa pun. Kalau belum waktunya tidak apa-apa, kabari saja kapan nyaman dihubungi lagi."; } },
+    { id: "survey", nama: "Ajakan survey", when: "Beri 2 pilihan jam", text: function (c) { return "Halo Kak " + c.p + ", supaya lebih yakin dengan " + c.unit + ", yuk lihat langsung ke lokasi. " + c.s1 + " atau " + c.s2 + ", Kakak lebih cocok yang mana? Nanti saya siapkan unitnya dan kirim titik lokasinya."; } },
+    { id: "konfirmasi", nama: "Konfirmasi survey", when: "H-1 sebelum survey", text: function (c) { return "Halo Kak " + c.p + ", mengingatkan besok " + c.sv + " kita survey " + c.unit + " di Shaistanaya City. Titik lokasi: (kirim link lokasi). Kakak berangkat dari mana? Kalau ada perubahan jadwal, kabari saya ya."; } },
+    { id: "pasca", nama: "Setelah survey", when: "Maksimal 24 jam setelah survey", text: function (c) { return "Terima kasih sudah survey tadi, Kak " + c.p + ". Bagaimana kesan Kakak untuk " + c.unit + "? Kalau ada yang ingin didiskusikan, misalnya simulasi cicilan, saya siap bantu hari ini."; } }
+  ];
+  function surveySlots() {
+    var sat = (6 - new Date().getDay() + 7) % 7; if (sat < 2) sat += 7;
+    function mk(id, off, jam) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return { id: id, date: d, jam: jam }; }
+    return [mk("s1", sat, "10.00"), mk("s2", sat, "14.00"), mk("s3", sat + 1, "10.00"), mk("s4", sat + 1, "14.00")];
+  }
+  function slotText(s) { return DAY_NAMES[s.date.getDay()] + " " + s.date.getDate() + " " + MON_NAMES[s.date.getMonth()] + " jam " + s.jam; }
+
+  // ----- objection answers (stored as notes so the team can edit them in the Playbook) -----
+  var OBJECTIONS = [
+    { id: "harga", nama: "Harga" },
+    { id: "lokasi", nama: "Lokasi jauh" },
+    { id: "waktu", nama: "Belum waktunya" },
+    { id: "kompetitor", nama: "Bandingkan kompetitor" },
+    { id: "lain", nama: "Lainnya" }
+  ];
+  function objKey(o) { return o.id === "lain" ? null : "Keberatan: " + o.nama; }
+  var OBJECTION_SEED = {
+    "Keberatan: Harga": 'Jawaban:\n"Saya paham, Kak. Untuk gambaran, tipe Gwen di Montana mulai sekitar 598 jutaan cash, dan ada skema DP 0% plus gratis biaya AJB, BBN, dan BPHTB. Kalau Kakak mau, saya hitungkan simulasi cicilan sesuai budget supaya terlihat per bulannya."\n\nPoin:\n- Entry price kompetitif: Gwen mulai sekitar 598 jutaan cash\n- DP 0% dan gratis biaya AJB, BBN, BPHTB (skema standar)\n- Pembayaran fleksibel: Hard Cash, KPR, Tunai Bertahap, 5 bank partner termasuk syariah (BSI, BSN)\n\nHindari: Jangan langsung menawarkan diskon atau menurunkan harga sebelum tahu budget dan kebutuhan Kakak.',
+    "Keberatan: Lokasi jauh": 'Jawaban:\n"Lokasinya justru di Sidoarjo kota, Kak: 1 menit ke Puskesmas Sidodadi, 8 menit ke RS Delta Surya, dan 9 menit ke Gate Tol Sidoarjo. Mal juga dekat, Lippo Plaza 8 menit dan Suncity Mall 10 menit."\n\nPoin:\n- Tanya dulu domisili atau tempat kerja Kakak\n- 9 menit ke Gate Tol Sidoarjo (ruas Surabaya–Porong), cocok untuk yang komuter ke Surabaya\n- Kebutuhan harian dekat: Pasar Suko 5 menit, Pasar Modern Sidodadi\n\nHindari: Jangan membantah penilaian jauh. Tunjukkan waktu tempuh nyata, lalu ajak survey.',
+    "Keberatan: Belum waktunya": 'Jawaban:\n"Tidak apa-apa, Kak. Boleh tahu rencananya kira-kira kapan? Nanti saya kabari info yang relevan saat sudah dekat waktunya. Kalau mau, survey dulu tanpa komitmen supaya tahu gambaran unitnya."\n\nPoin:\n- Tanyakan perkiraan waktu, lalu jadwalkan follow up mengikuti jawabannya\n- Tawarkan survey tanpa komitmen sebagai cara mengenal unit\n- Turunkan funnel ke Warm atau Cold sesuai jawaban\n\nHindari: Jangan menekan atau mengulang ajakan beli di setiap chat.',
+    "Keberatan: Bandingkan kompetitor": 'Jawaban:\n"Wajar sekali dibandingkan, Kak. Boleh tahu perumahan mana yang sedang Kakak lihat? Yang kami unggulkan: kawasan bebas banjir, one gate system dengan security 24 jam, dan dibangun langsung oleh PT Neo Pudji Jaya sebagai developer sekaligus kontraktor. Paling jelas dibandingkan lewat survey langsung."\n\nPoin:\n- Kawasan bebas banjir, one gate system, CCTV, security 24 jam\n- Standar semua unit: hebel, rangka atap baja ringan, plafon hollow galvalum, smartdoor lock\n- Satu tangan dari desain sampai bangun, tidak dilempar ke kontraktor lain\n\nHindari: Jangan menjelekkan kompetitor. Fokus pada keunggulan yang bisa dibuktikan saat survey.'
+  };
+  function parseObjection(text) {
+    var sec = "", quote = [], pts = [], avoid = [];
+    String(text || "").split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var m = line.match(/^(Jawaban|Poin|Hindari):\s*(.*)$/i);
+      if (m) {
+        sec = m[1].toLowerCase();
+        if (m[2]) { if (sec === "jawaban") quote.push(m[2]); else if (sec === "hindari") avoid.push(m[2]); }
+        return;
+      }
+      if (sec === "jawaban") quote.push(line);
+      else if (sec === "poin") pts.push(line.replace(/^[-•*]\s*/, ""));
+      else if (sec === "hindari") avoid.push(line);
+    });
+    return { quote: quote.join(" ").replace(/^["“]+|["”]+$/g, "").trim(), poin: pts, hindari: avoid.join(" ").trim() };
+  }
+  function ensureObjectionNotes() {
+    Object.keys(OBJECTION_SEED).forEach(function (k) {
+      if (clusterNotes[k] === undefined) { clusterNotes[k] = OBJECTION_SEED[k]; persistClusterNote(k, OBJECTION_SEED[k]); }
+    });
+  }
+
+  // ----- state -----
+  var tgFilter = "all", tgSheet = null, nxEditing = null, svEditing = null, objOpen = {}, waModal = null;
+  var draftNext = { key: null, note: "" };
+
+  function nextEditorHtml(saveAct, cancelAct, saveLabel) {
+    var chips = [[1, "Besok"], [2, "Lusa"], [3, "3 hari lagi"], [7, "Minggu depan"]].map(function (o) {
+      return '<button type="button" class="tg-chip" data-x="draft-off" data-off="' + o[0] + '" aria-pressed="' + (draftNext.key === keyOffset(o[0])) + '">' + o[1] + '</button>';
+    }).join("");
+    return '<div class="nx-editor"><span class="k">Follow up berikutnya</span>' +
+      '<div class="nx-chips">' + chips + '<input type="date" aria-label="Pilih tanggal" data-xin="draft-date" value="' + escapeHtml(draftNext.key || "") + '"></div>' +
+      '<div><label>Catatan singkat</label><input type="text" data-xin="draft-note" value="' + escapeHtml(draftNext.note) + '" placeholder="cth. Kirim simulasi cicilan"></div>' +
+      '<div class="nx-row"><button type="button" class="primary" data-x="' + saveAct + '">' + saveLabel + '</button>' +
+      (cancelAct ? '<button type="button" class="ghost" data-x="' + cancelAct + '">Batal</button>' : "") + '</div></div>';
+  }
+
+  // ----- Tugas Hari Ini view -----
+  function taskCardHtml(t) {
+    var l = t.l, r = taskReason(t), open = tgSheet === l.id;
+    var nextLine = (l.nextAt && t.type !== "respon") ? '<p class="tg-next">Langkah berikutnya: ' + escapeHtml(l.nextNote || "Follow up") + ' · ' + dayLabelKey(l.nextAt) + '</p>' : "";
+    var actions =
+      (t.type === "hot" ? '<button type="button" class="btn-gold" data-x="wa" data-id="' + l.id + '" data-tpl="survey">Ajak survey</button>' : "") +
+      '<button type="button" class="wa-btn" data-x="wa" data-id="' + l.id + '" data-tpl="' + recoTemplate(l) + '">' + WA_ICON + '<span>Chat WA</span></button>' +
+      (t.type === "konfirmasi"
+        ? '<button type="button" class="ghost" data-x="tg-konf" data-id="' + l.id + '">Sudah dikonfirmasi</button>'
+        : '<button type="button" class="ghost" data-x="tg-sheet" data-id="' + l.id + '">Selesai</button>');
+    return '<article class="tg-task">' +
+      '<div class="tg-avatar">' + escapeHtml(initialsOf(l.nama)) + '</div>' +
+      '<div style="min-width:0"><div class="tg-top"><button type="button" class="tg-name" data-x="open" data-id="' + l.id + '">' + escapeHtml(l.nama) + '</button>' +
+      '<span class="tg-meta">' + escapeHtml(l.source) + ' · ' + escapeHtml(l.minat) + '</span></div>' +
+      '<div class="tg-badges"><span class="badge ' + (STAGE_CLASS[l.stage] || "s-masuk") + '">' + STAGE_LABEL[l.stage] + '</span>' + tempBadge(l) + '</div>' +
+      '<p class="tg-reason tone-' + r.tone + '">' + escapeHtml(r.text) + '</p>' + nextLine + '</div>' +
+      '<div class="tg-actions">' + actions + '</div>' +
+      (open ? '<div class="tg-sheet">' + nextEditorHtml("tg-save", "tg-sheet-cancel", "Simpan dan selesai") + '</div>' : "") +
+      '</article>';
+  }
+  function renderTugas() {
+    var el = document.getElementById("view-tugas");
+    if (!el) return;
+    var all = computeTasks(), doneList = doneTodayLeads(), total = all.length + doneList.length;
+    var counts = { respon: 0, hot: 0, fu: 0, konfirmasi: 0 };
+    all.forEach(function (t) { counts[t.type]++; });
+    var badge = document.getElementById("tg-count");
+    if (badge) badge.textContent = all.length ? String(all.length) : "";
+    var shown = all.filter(function (t) { return tgFilter === "all" || tgFilter === t.type; });
+    var now = new Date();
+    var html = renderPageHeader("Tugas Hari Ini", DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MON_NAMES[now.getMonth()] + " · urut dari yang paling mendesak", null);
+    html += '<div class="tg-progress"><div class="track"><div class="fill" style="width:' + (total ? Math.round(doneList.length / total * 100) : 0) + '%"></div></div><b class="mono">' + doneList.length + ' dari ' + total + ' selesai</b></div>';
+    var chips = [["all", "Semua (" + all.length + ")"], ["respon", "Belum direspon (" + counts.respon + ")"], ["hot", "Hot telat (" + counts.hot + ")"], ["fu", "Follow up (" + counts.fu + ")"], ["konfirmasi", "Konfirmasi survey (" + counts.konfirmasi + ")"]];
+    html += '<div class="tg-filters">' + chips.map(function (c) {
+      return '<button type="button" class="tg-chip" data-x="tg-filter" data-f="' + c[0] + '" aria-pressed="' + (tgFilter === c[0]) + '">' + c[1] + '</button>';
+    }).join("") + '</div>';
+    ["respon", "hot", "fu", "konfirmasi"].forEach(function (ty) {
+      var rows = shown.filter(function (t) { return t.type === ty; });
+      if (!rows.length) return;
+      html += '<div class="tg-sec"><h3>' + TASK_TYPES[ty].title + '</h3><span>' + rows.length + ' · ' + TASK_TYPES[ty].sub + '</span></div><div class="tg-list">' + rows.map(taskCardHtml).join("") + '</div>';
+    });
+    if (!shown.length) {
+      html += '<div class="panel"><div class="tg-empty">' + (all.length ? "Tidak ada tugas di filter ini." : (leads.length ? "Semua tugas hari ini selesai." : "Belum ada lead. Tugas muncul otomatis begitu lead tercatat.")) + '</div></div>';
+    }
+    if (doneList.length) {
+      html += '<details class="tg-done" open><summary>Selesai hari ini (' + doneList.length + ')</summary><div class="tg-list" style="margin-top:8px">' + doneList.map(function (l) {
+        return '<article class="tg-task is-done"><div class="tg-avatar">' + escapeHtml(initialsOf(l.nama)) + '</div><div style="min-width:0"><div class="tg-top"><button type="button" class="tg-name" data-x="open" data-id="' + l.id + '">' + escapeHtml(l.nama) + '</button><span class="tg-meta">' + escapeHtml(l.minat) + '</span></div>' +
+          (l.nextAt ? '<p class="tg-next">Berikutnya: ' + escapeHtml(l.nextNote || "Follow up") + ' · ' + dayLabelKey(l.nextAt) + '</p>' : '<p class="tg-next">Tanpa follow up lanjutan</p>') + '</div><div class="tg-actions"><span class="badge s-deal">Selesai</span></div></article>';
+      }).join("") + '</div></details>';
+    }
+    el.innerHTML = html;
+  }
+
+  // ----- cards inside the lead detail -----
+  function nextCardHtml(l) {
+    var body;
+    if (nxEditing === l.id) {
+      body = nextEditorHtml("nx-save", "nx-cancel", "Simpan");
+    } else if (l.nextAt) {
+      var n = daysFromToday(l.nextAt), late = n < 0;
+      body = '<div class="nx-when"><b>' + dayLabelKey(l.nextAt) + '</b><span class="' + (late ? "nx-late" : "nx-ok") + '">' + (late ? "Telat " + (-n) + " hari" : n === 0 ? "Hari ini" : "Terjadwal") + '</span></div>' +
+        '<p class="nx-text">' + escapeHtml(l.nextNote || "Follow up") + '</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Ubah</button>';
+    } else {
+      body = '<p class="nx-muted">Belum ada follow up terjadwal. Lead tanpa tanggal cenderung terlewat.</p><button type="button" class="ghost" data-x="nx-edit" data-id="' + l.id + '">Atur follow up</button>';
+    }
+    return '<section class="nx-card"><div class="k">Langkah berikutnya</div>' + body + '</section>';
+  }
+  function surveyCardHtml(l) {
+    var body;
+    if (svEditing === l.id) {
+      var v = l.surveyAt ? toDatetimeLocal(l.surveyAt) : "";
+      body = '<div class="nx-editor"><div><label>Tanggal dan jam survey</label><input type="datetime-local" data-xin="survey" value="' + v + '"></div>' +
+        '<div class="nx-row"><button type="button" class="primary" data-x="sv-save" data-id="' + l.id + '">Simpan</button><button type="button" class="ghost" data-x="sv-cancel">Batal</button>' +
+        (l.surveyAt ? '<button type="button" class="ghost" data-x="sv-clear" data-id="' + l.id + '">Hapus jadwal</button>' : "") + '</div></div>';
+    } else if (l.surveyAt) {
+      var past = new Date(l.surveyAt) < new Date();
+      body = '<div class="nx-when"><b>' + dayLabelKey(dayKeyLocal(new Date(l.surveyAt))) + ' · ' + jamLabel(l.surveyAt) + '</b>' +
+        '<span class="badge ' + (l.konfirmAt ? "s-deal" : "s-followup") + '">' + (past ? "Sudah lewat" : l.konfirmAt ? "Sudah dikonfirmasi" : "Belum dikonfirmasi") + '</span></div>' +
+        '<div class="nx-row" style="margin-top:8px"><button type="button" class="ghost" data-x="sv-edit" data-id="' + l.id + '">Ubah jadwal</button>' +
+        (past ? '<button type="button" class="wa-btn" data-x="wa" data-id="' + l.id + '" data-tpl="pasca">' + WA_ICON + '<span>Tanya kesan</span></button>'
+          : (l.konfirmAt ? "" : '<button type="button" class="wa-btn" data-x="wa" data-id="' + l.id + '" data-tpl="konfirmasi">' + WA_ICON + '<span>Kirim konfirmasi</span></button>')) + '</div>';
+    } else {
+      body = (l.ajakAt ? '<p class="nx-text" style="margin-top:6px">Ajakan survey terkirim ' + dayLabelKey(dayKeyLocal(new Date(l.ajakAt))).toLowerCase() + ', menunggu jawaban lead.</p>' : '<p class="nx-muted">Belum ada jadwal survey.</p>') +
+        '<div class="nx-row"><button type="button" class="ghost" data-x="sv-edit" data-id="' + l.id + '">Atur jadwal survey</button>' +
+        '<button type="button" class="wa-btn" data-x="wa" data-id="' + l.id + '" data-tpl="survey">' + WA_ICON + '<span>' + (l.ajakAt ? "Ajak lagi" : "Ajak survey") + '</span></button></div>';
+    }
+    return '<section class="nx-card"><div class="k">Jadwal survey</div>' + body + '</section>';
+  }
+  function objectionCardHtml(l) {
+    var open = objOpen[l.id], o = OBJECTIONS.filter(function (x) { return x.id === open; })[0];
+    var chips = OBJECTIONS.map(function (x) {
+      return '<button type="button" class="tg-chip" data-x="obj" data-id="' + l.id + '" data-o="' + x.id + '" aria-pressed="' + (open === x.id) + '">' + x.nama + '</button>';
+    }).join("");
+    var logged = (l.objections || []).map(function (x) { return x.r; });
+    var ans = "";
+    if (o) {
+      var p = o.id === "lain" ? null : parseObjection(clusterNotes[objKey(o)]);
+      var done = logged.length && logged[logged.length - 1] === o.nama;
+      ans = '<div class="obj-answer">';
+      if (p && p.quote) {
+        ans += '<p class="quote">"' + escapeHtml(p.quote) + '"</p>';
+        if (p.poin.length) ans += '<ul>' + p.poin.map(function (x) { return '<li>' + escapeHtml(x) + '</li>'; }).join("") + '</ul>';
+        if (p.hindari) ans += '<p class="obj-avoid">Hindari: ' + escapeHtml(p.hindari) + '</p>';
+      } else {
+        ans += '<p class="quote" style="font-style:normal">' + (p ? "Jawaban untuk alasan ini belum diisi. Tulis di Playbook, bagian Jawaban Keberatan." : "Tulis alasan lain di catatan lead. Alasan ini tidak punya jawaban siap pakai.") + '</p>';
+      }
+      ans += '<div class="nx-row">' + (p && p.quote ? '<button type="button" class="primary" data-x="obj-wa" data-id="' + l.id + '" data-o="' + o.id + '">' + WA_ICON + ' Pakai di chat</button>' : "") +
+        '<button type="button" class="ghost" data-x="obj-log" data-id="' + l.id + '" data-o="' + o.id + '"' + (done ? " disabled" : "") + '>' + (done ? "Alasan tercatat" : "Catat alasan") + '</button></div></div>';
+    }
+    return '<section class="nx-card nx-full"><h4>Lead ragu?</h4><p class="hint" style="margin:0">Pilih alasannya, jawaban dan poin keunggulan langsung muncul.</p><div class="obj-chips">' + chips + '</div>' + ans +
+      (logged.length ? '<p class="hint" style="margin:10px 0 0">Alasan tercatat: ' + escapeHtml(logged.join(", ")) + '</p>' : "") + '</section>';
+  }
+  function followUpCardsHtml(l) {
+    return '<div class="nx-wrap">' + nextCardHtml(l) + surveyCardHtml(l) + objectionCardHtml(l) + '</div>';
+  }
+
+  // ----- dashboard panel -----
+  function objectionPanelHtml(range) {
+    // Counted by when the reason was logged, so the panel follows the dashboard date range.
+    var counts = {}, sum = 0;
+    leads.forEach(function (l) {
+      (l.objections || []).forEach(function (x) {
+        var d = new Date(x.ts);
+        if (d >= range.start && d <= range.end) { counts[x.r] = (counts[x.r] || 0) + 1; sum++; }
+      });
+    });
+    var keys = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
+    var html = '<div class="panel"><h2>Alasan Lead Tidak Maju</h2><p class="hint">Dari alasan yang dicatat CS lewat kartu "Lead ragu?" di detail lead</p>';
+    if (!keys.length) return html + '<div class="empty">Belum ada alasan yang dicatat di rentang ini.</div></div>';
+    var max = counts[keys[0]];
+    keys.forEach(function (k) {
+      html += '<div class="bar-row"><div class="bar-top"><span class="name">' + escapeHtml(k) + '</span><span class="pct mono">' + Math.round(counts[k] / sum * 100) + '% · ' + counts[k] + '</span></div>' +
+        '<div class="bar-track"><div class="bar-fill" data-w="' + Math.max(4, Math.round(counts[k] / max * 100)) + '"></div></div></div>';
+    });
+    return html + '</div>';
+  }
+  function objectionPlaybookHtml() {
+    var html = '<div class="panel"><h2>Jawaban Keberatan</h2><p class="hint">Jawaban siap pakai saat lead ragu. Muncul di kartu "Lead ragu?" pada detail lead. Tulis dengan susunan Jawaban, Poin, dan Hindari supaya terbaca otomatis.</p>';
+    OBJECTIONS.forEach(function (o) { if (objKey(o)) html += renderClusterFocus(objKey(o), o.nama); });
+    return html + '</div>';
+  }
+
+  // ----- WhatsApp modal -----
+  function waCtx(l, m) {
+    var slots = surveySlots(), pick = m.slots.map(function (id) { return slots.filter(function (s) { return s.id === id; })[0]; });
+    var sv = l.surveyAt ? DAY_NAMES[new Date(l.surveyAt).getDay()] + " jam " + jamLabel(l.surveyAt) : "(jadwal survey)";
+    return { p: String(l.nama).indexOf("(") === 0 ? "" : String(l.nama).split(" ")[0], unit: (l.minat && l.minat !== "—") ? l.minat : "unit di Shaistanaya City", s1: slotText(pick[0]), s2: slotText(pick[1] || pick[0]), sv: sv };
+  }
+  function waText(l, m) {
+    var t = WA_TEMPLATES.filter(function (x) { return x.id === m.tpl; })[0];
+    return t.text(waCtx(l, m)).replace("Kak ,", "Kak,").replace("Kak  ", "Kak ");
+  }
+  function defaultNextFor(tpl) {
+    var map = { pembuka: [1, "Tanya kebutuhan dan budget"], fu1: [2, "Follow up ke-2"], fu2: [2, "Follow up ke-3"], fu3: [7, "Cek lagi, turunkan funnel jika tidak ada kabar"], survey: [1, "Tanya jawaban ajakan survey"], konfirmasi: [null, ""], pasca: [1, "Tawarkan simulasi cicilan"], obj: [2, "Tindak lanjuti jawaban keberatan"] };
+    var d = map[tpl] || [2, ""];
+    return { key: d[0] == null ? null : keyOffset(d[0]), note: d[1] };
+  }
+  function openWaModal(id, tpl, custom) {
+    var l = leads.find(function (x) { return x.id === id; });
+    if (!l) return;
+    if (normPhone(l.telp).length < 9) { showToast("Nomor telepon lead ini belum valid. Perbaiki lewat Ubah data."); return; }
+    waModal = { id: id, tpl: tpl, slots: ["s1", "s2"], step: 1, msg: "", log: true, custom: !!custom };
+    waModal.msg = custom || waText(l, waModal);
+    draftNext = defaultNextFor(tpl);
+    renderWaModal();
+  }
+  function renderWaModal() {
+    var host = document.getElementById("wa-modal"), m = waModal;
+    if (!host) return;
+    if (!m) { host.innerHTML = ""; return; }
+    var l = leads.find(function (x) { return x.id === m.id; });
+    var head = '<div class="mdl-head"><div><h3>Chat WA · ' + escapeHtml(l.nama) + '</h3><div class="sub mono">' + escapeHtml(l.telp) + '</div></div><button type="button" class="mdl-x" data-x="wa-close" aria-label="Tutup">&times;</button></div>';
+    var body, reco = recoTemplate(l);
+    if (m.step === 1) {
+      var list = WA_TEMPLATES.map(function (t) {
+        return '<button type="button" class="mdl-tpl" data-x="wa-tpl" data-t="' + t.id + '" aria-pressed="' + (m.tpl === t.id) + '"><b>' + t.nama + (t.id === reco ? ' <span class="mdl-reco">Disarankan</span>' : "") + '</b><small>' + t.when + '</small></button>';
+      }).join("");
+      var slots = "";
+      if (m.tpl === "survey") {
+        slots = '<div><span class="k">Pilih 2 jadwal untuk ditawarkan</span><div class="nx-chips" style="margin-top:6px">' + surveySlots().map(function (s) {
+          return '<button type="button" class="tg-chip" data-x="wa-slot" data-s="' + s.id + '" aria-pressed="' + (m.slots.indexOf(s.id) > -1) + '">' + slotText(s).replace(" jam ", " · ") + '</button>';
+        }).join("") + '</div></div>';
+      }
+      body = '<div class="mdl-body"><div class="mdl-list">' + list + '</div><div class="mdl-preview">' + slots +
+        '<div><span class="k" style="display:block;margin-bottom:6px">Pesan, bisa diedit</span><textarea data-xin="msg">' + escapeHtml(m.msg) + '</textarea></div>' +
+        '<p class="hint" style="margin:0">Tombol Buka WhatsApp membuka chat ke nomor ini dengan pesan di atas sudah terisi. Pesan baru terkirim setelah kamu menekan kirim di WhatsApp.</p></div></div>' +
+        '<div class="mdl-foot"><button type="button" class="ghost" data-x="wa-close">Batal</button><button type="button" class="ghost" data-x="wa-copy">Salin pesan</button><button type="button" class="primary" data-x="wa-send">' + WA_ICON + ' Buka WhatsApp</button></div>';
+    } else {
+      var t = WA_TEMPLATES.filter(function (x) { return x.id === m.tpl; })[0], nm = t ? t.nama : "Jawaban keberatan";
+      body = '<div class="mdl-step2"><p style="margin:0;font-weight:600">Pesan sudah dikirim? Catat supaya tidak terlewat.</p>' +
+        '<label class="mdl-check"><input type="checkbox" data-xin="logchk"' + (m.log ? " checked" : "") + '> Catat di riwayat: ' + escapeHtml(nm) + '</label>' +
+        (m.tpl === "konfirmasi" ? '<p class="hint" style="margin:0">Survey akan ditandai sudah dikonfirmasi.</p><div class="nx-row"><button type="button" class="primary" data-x="wa-save">Simpan</button></div>' : nextEditorHtml("wa-save", null, "Simpan")) + '</div>';
+    }
+    host.innerHTML = '<div class="mdl-overlay" data-x="wa-overlay"><div class="mdl" role="dialog" aria-modal="true">' + head + body + '</div></div>';
+    var listEl = host.querySelector(".mdl-list"), pick = host.querySelector('.mdl-tpl[aria-pressed="true"]');
+    if (listEl && pick && listEl.scrollWidth > listEl.clientWidth) listEl.scrollLeft = Math.max(0, pick.offsetLeft - 12);
+  }
+  function rerenderAfterDraft() { if (waModal) renderWaModal(); else refreshAll(); }
+
+  function markDone(l) { l.doneAt = new Date().toISOString(); }
+  function respondIfNeeded(l) {
+    if (!l.respondedAt) { l.respondedAt = new Date().toISOString(); if (l.stage === "Masuk") l.stage = "Direspon"; }
+  }
+
+  // One delegated handler, in the capture phase so it also works inside the lead detail (which stops click bubbling).
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-x]") : null;
+    if (!t) return;
+    var a = t.getAttribute("data-x"), id = t.getAttribute("data-id");
+    var lead = id ? leads.find(function (x) { return x.id === id; }) : null;
+    if (a === "wa-overlay") { if (e.target === t) { waModal = null; renderWaModal(); } e.stopPropagation(); return; }
+    e.stopPropagation();
+    if (a === "open") { openLead(id); return; }
+    if (a === "tg-filter") { tgFilter = t.getAttribute("data-f"); renderTugas(); return; }
+    if (a === "tg-sheet") { tgSheet = tgSheet === id ? null : id; draftNext = { key: keyOffset(1), note: "" }; renderTugas(); return; }
+    if (a === "tg-sheet-cancel") { tgSheet = null; renderTugas(); return; }
+    if (a === "tg-save") {
+      var tl = leads.find(function (x) { return x.id === tgSheet; });
+      if (!tl) return;
+      if (!draftNext.key) { showToast("Pilih kapan follow up berikutnya."); return; }
+      respondIfNeeded(tl);
+      tl.nextAt = draftNext.key; tl.nextNote = draftNext.note || "Follow up"; markDone(tl);
+      addNote(tl, "Ditandai selesai. Berikutnya: " + tl.nextNote + " (" + dayLabelKey(tl.nextAt) + ").");
+      tgSheet = null; persistLead(tl); refreshAll(); showToast("Tugas selesai · " + dayLabelKey(tl.nextAt).toLowerCase()); return;
+    }
+    if (a === "tg-konf") {
+      lead.konfirmAt = new Date().toISOString(); markDone(lead); addNote(lead, "Konfirmasi survey ditandai sudah dikirim.");
+      persistLead(lead); refreshAll(); showToast("Survey ditandai sudah dikonfirmasi."); return;
+    }
+    if (a === "draft-off") { draftNext.key = keyOffset(parseInt(t.getAttribute("data-off"), 10)); rerenderAfterDraft(); return; }
+    if (a === "nx-edit") { nxEditing = id; draftNext = { key: lead.nextAt && daysFromToday(lead.nextAt) >= 1 ? lead.nextAt : keyOffset(1), note: lead.nextNote || "" }; refreshAll(); return; }
+    if (a === "nx-cancel") { nxEditing = null; refreshAll(); return; }
+    if (a === "nx-save") {
+      var nl = leads.find(function (x) { return x.id === nxEditing; });
+      if (!nl) return;
+      if (!draftNext.key) { showToast("Pilih kapan follow up berikutnya."); return; }
+      nl.nextAt = draftNext.key; nl.nextNote = draftNext.note || "Follow up";
+      addNote(nl, "Follow up diatur: " + nl.nextNote + " (" + dayLabelKey(nl.nextAt) + ").");
+      nxEditing = null; persistLead(nl); refreshAll(); showToast("Langkah berikutnya disimpan."); return;
+    }
+    if (a === "sv-edit") { svEditing = id; refreshAll(); return; }
+    if (a === "sv-cancel") { svEditing = null; refreshAll(); return; }
+    if (a === "sv-clear") {
+      lead.surveyAt = null; lead.konfirmAt = null; addNote(lead, "Jadwal survey dihapus.");
+      svEditing = null; persistLead(lead); refreshAll(); showToast("Jadwal survey dihapus."); return;
+    }
+    if (a === "sv-save") {
+      var inp = t.closest(".nx-card").querySelector('[data-xin="survey"]'), d = inp && inp.value ? new Date(inp.value) : null;
+      if (!d || isNaN(d.getTime())) { showToast("Isi tanggal dan jam survey."); return; }
+      lead.surveyAt = d.toISOString(); lead.konfirmAt = null;
+      respondIfNeeded(lead);
+      if (lead.stage === "Direspon" || lead.stage === "Follow Up" || lead.stage === "Masuk") lead.stage = "Janjian";
+      addNote(lead, "Survey dijadwalkan: " + dayShortLabel(d) + " jam " + jamLabel(lead.surveyAt) + ".");
+      svEditing = null; persistLead(lead); refreshAll(); showToast("Jadwal survey disimpan. Tahap: Janjian."); return;
+    }
+    if (a === "obj") { objOpen[id] = objOpen[id] === t.getAttribute("data-o") ? null : t.getAttribute("data-o"); refreshAll(); return; }
+    if (a === "obj-log") {
+      var ob = OBJECTIONS.filter(function (x) { return x.id === t.getAttribute("data-o"); })[0];
+      lead.objections = (lead.objections || []).concat([{ r: ob.nama, ts: new Date().toISOString() }]);
+      addNote(lead, "Keberatan tercatat: " + ob.nama + ".");
+      persistLead(lead); refreshAll(); showToast("Alasan tercatat. Lihat rekapnya di Dashboard."); return;
+    }
+    if (a === "obj-wa") {
+      var oo = OBJECTIONS.filter(function (x) { return x.id === t.getAttribute("data-o"); })[0], pp = parseObjection(clusterNotes[objKey(oo)]);
+      openWaModal(id, "obj", pp.quote); return;
+    }
+    if (a === "wa") { openWaModal(id, t.getAttribute("data-tpl")); return; }
+    if (!waModal) return;
+    var m = waModal, ml = leads.find(function (x) { return x.id === m.id; });
+    if (a === "wa-close") { waModal = null; renderWaModal(); return; }
+    if (a === "wa-tpl") { m.tpl = t.getAttribute("data-t"); m.custom = false; m.msg = waText(ml, m); draftNext = defaultNextFor(m.tpl); renderWaModal(); return; }
+    if (a === "wa-slot") {
+      var sid = t.getAttribute("data-s"), i = m.slots.indexOf(sid);
+      if (i > -1) { if (m.slots.length > 1) m.slots.splice(i, 1); } else { m.slots.push(sid); if (m.slots.length > 2) m.slots.shift(); }
+      m.msg = waText(ml, m); renderWaModal(); return;
+    }
+    if (a === "wa-copy") {
+      var ok = function () { showToast("Pesan disalin."); };
+      var fb = function () { var ta = document.querySelector('#wa-modal textarea'); if (ta) ta.select(); showToast("Pesan dipilih, tekan salin."); };
+      try { navigator.clipboard.writeText(m.msg).then(ok, fb); } catch (err) { fb(); }
+      return;
+    }
+    if (a === "wa-send") {
+      var url = "https://wa.me/" + normPhone(ml.telp) + "?text=" + encodeURIComponent(m.msg);
+      window.open(url, "_blank", "noopener");
+      m.step = 2; renderWaModal(); return;
+    }
+    if (a === "wa-save") {
+      if (m.tpl !== "konfirmasi" && !draftNext.key) { showToast("Pilih kapan follow up berikutnya."); return; }
+      var tpl = WA_TEMPLATES.filter(function (x) { return x.id === m.tpl; })[0], nm = tpl ? tpl.nama : "Jawaban keberatan";
+      if (m.log) addNote(ml, "Chat WA dikirim: " + nm + ".");
+      if (m.tpl === "pembuka") respondIfNeeded(ml);
+      if (m.tpl === "survey") ml.ajakAt = new Date().toISOString();
+      if (m.tpl === "konfirmasi") ml.konfirmAt = new Date().toISOString();
+      if (m.tpl !== "konfirmasi") {
+        ml.nextAt = draftNext.key; ml.nextNote = draftNext.note || "Follow up";
+        if (m.log) addNote(ml, "Langkah berikutnya: " + ml.nextNote + " (" + dayLabelKey(ml.nextAt) + ").");
+      }
+      markDone(ml); waModal = null; persistLead(ml); refreshAll(); showToast("Tersimpan di riwayat lead."); return;
+    }
+  }, true);
+  document.addEventListener("input", function (e) {
+    var t = e.target, a = t.getAttribute ? t.getAttribute("data-xin") : null;
+    if (!a) return;
+    if (a === "draft-note") draftNext.note = t.value;
+    if (a === "msg" && waModal) waModal.msg = t.value;
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target, a = t.getAttribute ? t.getAttribute("data-xin") : null;
+    if (!a) return;
+    if (a === "draft-date" && t.value) { draftNext.key = t.value; rerenderAfterDraft(); }
+    if (a === "logchk" && waModal) waModal.log = t.checked;
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && waModal) { waModal = null; renderWaModal(); }
+  });
+
   function refreshAll() {
     renderDashboard();
+    renderTugas();
     renderAllLeadsView();
     renderInputForm();
     renderPlaybook();
+    renderWaModal();
   }
 
   // ---------- Semua Lead (filterable) ----------
@@ -2484,7 +3097,8 @@
         stage: respondedIso ? "Direspon" : "Masuk",
         lossRank: null,
         notes: catatan ? [{ ts: new Date().toISOString(), text: catatan }] : [],
-        signals: signals
+        signals: signals,
+        nextAt: null, nextNote: "", surveyAt: null, ajakAt: null, konfirmAt: null, doneAt: null, objections: []
       };
       leads.unshift(lead);
       persistLead(lead);
@@ -2507,6 +3121,7 @@
     html += '<p class="hint">Keunggulan kawasan &amp; unit buat bahan jawaban ke calon pembeli — bisa diubah kalau ada info baru</p>';
     html += renderClusterFocus(USP_KEY, "");
     html += '</div>';
+    html += objectionPlaybookHtml();
     STAGES.concat(["Lost"]).forEach(function (stage) {
       var s = STRATEGY[stage];
       html += '<div class="panel">';
@@ -2659,6 +3274,7 @@
     historyLoaded = true;
     leads = loadStateLocal();
     clusterNotes = loadClusterNotesLocal();
+    ensureObjectionNotes();
     renderAll();
   }
 
@@ -2671,6 +3287,7 @@
       db = client;
       leads = await loadLeadsFromDb();
       clusterNotes = await loadClusterNotesFromDb();
+      ensureObjectionNotes();
       renderAll();
     } catch (e) {
       db = null;
