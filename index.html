@@ -413,6 +413,9 @@
     border-bottom: 1px solid var(--line);
     vertical-align: top;
   }
+  .kpi-bar { display: inline-block; vertical-align: middle; width: 70px; height: 6px; background: var(--panel-sunken); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-right: 6px; }
+  .kpi-bar i { display: block; height: 100%; background: var(--accent); }
+  table.kpi th, table.kpi td { white-space: nowrap; }
   table.leads tbody tr { cursor: pointer; }
   table.leads tbody tr:hover td { background: var(--panel-sunken); }
   .badge {
@@ -955,7 +958,11 @@
       </button>
       <button data-view="all">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="1.5" width="13" height="13" rx="0.5"/><line x1="1.5" y1="6" x2="14.5" y2="6"/><line x1="1.5" y1="10" x2="14.5" y2="10"/></svg>
-        <span>Semua Lead</span>
+        <span id="nav-all-label">Lead Kantor</span>
+      </button>
+      <button data-view="team" id="nav-team" hidden>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="5.5" r="2.3"/><circle cx="11.2" cy="6.3" r="1.8"/><path d="M1.5 13c0-2.3 1.8-3.8 4-3.8s4 1.5 4 3.8"/><path d="M10 9.4c2.2-.3 4.5.9 4.5 3.2"/></svg>
+        <span>Lead Marketing</span>
       </button>
       <button data-view="input">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
@@ -978,6 +985,7 @@
     <section id="view-dashboard" class="view active"></section>
     <section id="view-tugas" class="view"></section>
     <section id="view-all" class="view"></section>
+    <section id="view-team" class="view"></section>
     <section id="view-input" class="view"></section>
     <section id="view-playbook" class="view"></section>
   </main>
@@ -993,7 +1001,7 @@
       <h1 class="display" style="font-size:1.05rem;margin:4px 0 2px">CRM · Log Lead</h1>
       <div class="sub">Masuk untuk melihat &amp; mencatat lead</div>
     </div>
-    <div class="field-wrap"><label for="login-email">Email</label><input type="email" id="login-email" autocomplete="username" required></div>
+    <div class="field-wrap"><label for="login-email">Email atau username</label><input type="text" id="login-email" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
     <div class="field-wrap"><label for="login-password">Password</label><input type="password" id="login-password" autocomplete="current-password" required></div>
     <button type="submit" class="primary" id="login-submit">Masuk</button>
     <p class="login-error" id="login-error"></p>
@@ -1149,7 +1157,9 @@
       html += '<span class="tip">Enter = baris baru · awali "- " untuk bullet · "Judul:" di awal baris jadi tebal</span></div></div>';
     } else if (note) {
       html += '<div class="cluster-note-text">' + formatNote(note) + '</div>';
-      html += '<button type="button" class="ghost" data-action="edit-cluster-note" data-minat="' + escapeHtml(minat) + '">Ubah catatan</button>';
+      if (isAdmin()) html += '<button type="button" class="ghost" data-action="edit-cluster-note" data-minat="' + escapeHtml(minat) + '">Ubah catatan</button>';
+    } else if (!isAdmin()) {
+      html += '<div class="hint" style="margin:0">Belum ada catatan strategi untuk ' + escapeHtml(minat) + '.</div>';
     } else {
       html += '<div class="hint" style="margin:0 0 8px">Belum ada catatan strategi khusus untuk ' + escapeHtml(minat) + '. Tambahkan sekali, otomatis kepakai di semua lead yang minatnya sama.</div>';
       html += '<button type="button" class="ghost" data-action="edit-cluster-note" data-minat="' + escapeHtml(minat) + '">+ Tambah catatan</button>';
@@ -1333,7 +1343,8 @@
       ajak_at: l.ajakAt || null,
       konfirm_at: l.konfirmAt || null,
       done_at: l.doneAt || null,
-      objections: l.objections || []
+      objections: l.objections || [],
+      owner_email: l.owner || undefined
     };
   }
   function rowToLead(r) {
@@ -1356,7 +1367,8 @@
       ajakAt: r.ajak_at || null,
       konfirmAt: r.konfirm_at || null,
       doneAt: r.done_at || null,
-      objections: r.objections || []
+      objections: r.objections || [],
+      owner: r.owner_email || ""
     };
   }
 
@@ -1406,7 +1418,17 @@
     }
   }
 
-  var leads = []; // populated by init()
+  var leads = []; // populated by init(): the signed-in user's own leads (admin: Lead Kantor)
+  var teamLeads = []; // admin only: leads owned by marketing accounts
+  var teamMembers = []; // admin only: [{email, nama, role}]
+  var me = { email: "", nama: "", role: "admin" }; // local/offline mode = admin
+  function isAdmin() { return me.role === "admin"; }
+  function placeLoaded(list) {
+    // Admin gets every row from the server; split them into own vs. marketing.
+    list.forEach(function (l) {
+      if (isAdmin() && l.owner && l.owner !== me.email) teamLeads.push(l); else leads.push(l);
+    });
+  }
   var expandedId = null;
   var editingLeadId = null;
   var editingCluster = null;
@@ -2154,7 +2176,7 @@
     html += '</select></label>';
     html += '<span class="stage-actions">';
     if (editingLeadId !== l.id) html += '<button type="button" class="ghost" data-action="edit-lead" data-id="' + l.id + '">Ubah data</button>';
-    html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
+    if (isAdmin()) html += '<button type="button" class="danger" data-action="delete-lead" data-id="' + l.id + '">Hapus lead</button>';
     html += '</span></div>';
 
     html += followUpCardsHtml(l);
@@ -2490,7 +2512,7 @@
   }
   function ensureObjectionNotes() {
     Object.keys(OBJECTION_SEED).forEach(function (k) {
-      if (clusterNotes[k] === undefined) { clusterNotes[k] = OBJECTION_SEED[k]; persistClusterNote(k, OBJECTION_SEED[k]); }
+      if (clusterNotes[k] === undefined) { clusterNotes[k] = OBJECTION_SEED[k]; if (isAdmin()) persistClusterNote(k, OBJECTION_SEED[k]); }
     });
   }
 
@@ -2832,6 +2854,7 @@
     renderDashboard();
     renderTugas();
     renderAllLeadsView();
+    renderTeamView();
     renderInputForm();
     renderPlaybook();
     renderWaModal();
@@ -2843,7 +2866,7 @@
     var el = document.getElementById("view-all");
     var filtered = getFilteredLeads();
 
-    var html = renderPageHeader("Semua Lead", "Cari dan filter seluruh lead yang tercatat", "ph-add-all");
+    var html = renderPageHeader(isAdmin() ? "Lead Kantor" : "Lead Saya", isAdmin() ? "Cari dan filter lead yang diinput oleh admin (kantor)" : "Cari dan filter lead yang kamu input", "ph-add-all");
     html += '<div class="panel">';
     html += '<h2>Filter</h2>';
     html += '<p class="hint">Filter buat lihat siapa yang masih prospek aktif, sudah di-FU, sudah janjian/survey, atau berdasarkan minat</p>';
@@ -2963,6 +2986,192 @@
     bindDetailHandlers(el);
   }
 
+  // ---------- Lead Marketing (admin only): KPI per marketing + detail ----------
+
+  var teamFilters = { period: "30", who: "", stage: "", q: "" };
+  var teamExpanded = null;
+
+  function memberLabel(email) {
+    var m = teamMembers.filter(function (x) { return x.email === email; })[0];
+    return m ? (m.nama || email.split("@")[0]) : (email ? email.split("@")[0] : "—");
+  }
+
+  function teamPeriodCutoff() {
+    if (teamFilters.period === "all") return null;
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (parseInt(teamFilters.period, 10) - 1));
+    return d;
+  }
+  function teamInPeriod(l) {
+    var c = teamPeriodCutoff();
+    return !c || new Date(l.createdAt) >= c;
+  }
+
+  function teamKpi(list) {
+    var inP = list.filter(teamInPeriod);
+    var total = inP.length;
+    var responded = inP.filter(function (l) { return !!l.respondedAt; }).length;
+    var fast = inP.filter(function (l) { return l.respondedAt && (new Date(l.respondedAt) - new Date(l.createdAt)) / 60000 <= 15; }).length;
+    var survey = inP.filter(function (l) { return effectiveRank(l) >= STAGE_RANK["Janjian"]; }).length;
+    var deal = inP.filter(function (l) { return l.stage === "Deal"; }).length;
+    var lost = inP.filter(function (l) { return l.stage === "Lost"; }).length;
+    var active = list.filter(activeLead);
+    return {
+      total: total, responded: responded, fast: fast, survey: survey, deal: deal, lost: lost,
+      respRate: total ? Math.round(responded / total * 100) : 0,
+      fastRate: total ? Math.round(fast / total * 100) : 0,
+      surveyRate: total ? Math.round(survey / total * 100) : 0,
+      hot: active.filter(function (l) { return leadTemperature(l) === "Hot"; }).length,
+      stale: active.filter(isStale).length,
+      activeCount: active.length
+    };
+  }
+
+  function renderTeamView() {
+    var el = document.getElementById("view-team");
+    if (!el) return;
+    if (!isAdmin()) { el.innerHTML = ""; return; }
+
+    var period = { "7": "7 hari terakhir", "30": "30 hari terakhir", "90": "90 hari terakhir", all: "Semua waktu" }[teamFilters.period];
+    var html = renderPageHeader("Lead Marketing", "Performa &amp; lead marketing in-house · " + period, null);
+
+    // KPI per marketing
+    var rows = teamMembers.map(function (m) {
+      var own = teamLeads.filter(function (l) { return l.owner === m.email; });
+      return { m: m, k: teamKpi(own) };
+    });
+    rows.sort(function (a, b) { return (b.k.deal - a.k.deal) || (b.k.survey - a.k.survey) || (b.k.total - a.k.total); });
+    var all = teamKpi(teamLeads);
+
+    html += '<div class="panel range-bar"><div class="filter-bar"><div class="field-wrap"><label for="t-period">Periode</label><select id="t-period">';
+    [["7", "7 hari terakhir"], ["30", "30 hari terakhir"], ["90", "90 hari terakhir"], ["all", "Semua waktu"]].forEach(function (p) {
+      html += '<option value="' + p[0] + '"' + (teamFilters.period === p[0] ? " selected" : "") + '>' + p[1] + '</option>';
+    });
+    html += '</select></div></div></div>';
+
+    html += '<div class="stat-row">';
+    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.total + '</span><span class="label">Total lead marketing</span></div><div class="value mono">' + all.total + '</div></div>';
+    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.check + '</span><span class="label">Sudah direspon</span></div><div class="value mono">' + all.respRate + '<small>%</small></div></div>';
+    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.survey + '</span><span class="label">Survey</span></div><div class="value mono">' + all.survey + '<small> · ' + all.surveyRate + '%</small></div></div>';
+    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.bolt + '</span><span class="label">Lead Hot aktif</span></div><div class="value mono">' + all.hot + '</div></div>';
+    html += '</div>';
+
+    html += '<div class="panel"><h2>KPI per marketing</h2>';
+    html += '<p class="hint">Diurutkan dari Deal, lalu Survey. Hot aktif &amp; Butuh FU adalah kondisi saat ini; kolom lain mengikuti periode di atas.</p>';
+    html += '<div class="table-scroll"><table class="leads kpi"><thead><tr><th>Marketing</th><th>Lead</th><th>Direspon</th><th>Respon ≤15 mnt</th><th>Survey</th><th>Konversi survey</th><th>Deal</th><th>Hilang</th><th>Hot aktif</th><th>Butuh FU</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      var k = r.k;
+      html += '<tr data-who="' + escapeHtml(r.m.email) + '">';
+      html += '<td><strong>' + escapeHtml(r.m.nama || r.m.email) + '</strong></td>';
+      html += '<td class="mono">' + k.total + '</td>';
+      html += '<td class="mono">' + k.respRate + '%</td>';
+      html += '<td class="mono">' + k.fastRate + '%</td>';
+      html += '<td class="mono">' + k.survey + '</td>';
+      html += '<td><div class="kpi-bar"><i style="width:' + Math.min(100, k.surveyRate) + '%"></i></div><span class="mono kpi-pct">' + k.surveyRate + '%</span></td>';
+      html += '<td class="mono"><strong>' + k.deal + '</strong></td>';
+      html += '<td class="mono">' + k.lost + '</td>';
+      html += '<td class="mono">' + k.hot + '</td>';
+      html += '<td class="mono' + (k.stale ? ' stale-cell' : '') + '">' + k.stale + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+
+    // Detail list
+    var q = teamFilters.q.toLowerCase();
+    var qd = q.replace(/\D/g, "");
+    var list = teamLeads.filter(function (l) {
+      if (!teamInPeriod(l)) return false;
+      if (teamFilters.who && l.owner !== teamFilters.who) return false;
+      if (teamFilters.stage) {
+        if (teamFilters.stage === "Aktif") { if (!activeLead(l)) return false; }
+        else if (l.stage !== teamFilters.stage) return false;
+      }
+      if (q) {
+        var phoneHit = qd.length >= 3 && normPhone(l.telp).indexOf(normPhone(qd)) !== -1;
+        if (l.nama.toLowerCase().indexOf(q) === -1 && l.telp.indexOf(q) === -1 && !phoneHit) return false;
+      }
+      return true;
+    });
+
+    html += '<div class="panel"><h2>Detail lead marketing</h2>';
+    html += '<div class="filter-bar">';
+    html += '<div class="field-wrap"><label for="t-who">Marketing</label><select id="t-who"><option value="">Semua marketing</option>';
+    teamMembers.forEach(function (m) { html += '<option value="' + escapeHtml(m.email) + '"' + (teamFilters.who === m.email ? " selected" : "") + '>' + escapeHtml(m.nama || m.email) + '</option>'; });
+    html += '</select></div>';
+    html += '<div class="field-wrap"><label for="t-stage">Tahap</label><select id="t-stage">';
+    [["", "Semua tahap"], ["Aktif", "Prospek aktif"], ["Masuk", "Masuk"], ["Direspon", "Direspon"], ["Follow Up", "Follow Up"], ["Janjian", "Janjian (Survey)"], ["Deal", "Deal"], ["Lost", "Hilang"]].forEach(function (o) {
+      html += '<option value="' + o[0] + '"' + (teamFilters.stage === o[0] ? " selected" : "") + '>' + o[1] + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="field-wrap"><label for="t-q">Cari nama / no. telp</label><input type="text" id="t-q" value="' + escapeHtml(teamFilters.q) + '" placeholder="cth. Dewi atau 0812…"></div>';
+    html += '</div>';
+    html += '<div class="filter-summary"><span class="hint" style="margin:0">Menampilkan ' + list.length + ' lead' + (historyLoaded ? '' : ' · lead Deal/Hilang &gt;' + RECENT_DAYS + ' hari belum dimuat') + '</span>' +
+      (historyLoaded ? '' : '<button type="button" class="ghost" id="t-history">Muat riwayat lama</button>') + '</div>';
+
+    if (!list.length) {
+      html += '<div class="empty">Belum ada lead marketing untuk filter ini.</div>';
+    } else {
+      html += '<div class="table-scroll"><table class="leads"><thead><tr><th>Marketing</th><th>Waktu</th><th>Nama</th><th>No. telp</th><th>Sumber</th><th>Minat</th><th>Respon</th><th>Kontak terakhir</th><th>Tahap</th><th>Funnel</th></tr></thead><tbody>';
+      list.forEach(function (l) {
+        html += '<tr data-tid="' + l.id + '">';
+        html += '<td><strong>' + escapeHtml(memberLabel(l.owner)) + '</strong></td>';
+        html += '<td class="mono">' + fmtDate(l.createdAt) + ' · ' + fmtTime(l.createdAt) + '</td>';
+        html += '<td>' + escapeHtml(l.nama) + '</td>';
+        html += '<td class="mono">' + escapeHtml(l.telp) + '</td>';
+        html += '<td>' + escapeHtml(l.source) + '</td>';
+        html += '<td>' + escapeHtml(l.minat) + '</td>';
+        html += '<td><span class="sla-dot ' + slaClass(l) + '"></span>' + (l.respondedAt ? fmtTime(l.respondedAt) : "belum") + '</td>';
+        html += '<td' + (isStale(l) ? ' class="stale-cell"' : '') + '>' + contactLabel(l) + '</td>';
+        html += '<td><span class="badge ' + (STAGE_CLASS[l.stage] || "s-masuk") + '">' + STAGE_LABEL[l.stage] + '</span></td>';
+        html += '<td>' + tempBadge(l) + '</td>';
+        html += '</tr>';
+        if (teamExpanded === l.id) {
+          html += '<tr class="detail-row"><td colspan="10"><div class="detail">';
+          html += '<div class="k">Domisili</div><p class="nx-text">' + escapeHtml(l.domisili) + '</p>';
+          if (l.nextAt) html += '<div class="k">Follow up berikutnya</div><p class="nx-text">' + escapeHtml(l.nextAt) + (l.nextNote ? ' — ' + escapeHtml(l.nextNote) : '') + '</p>';
+          if (l.surveyAt) html += '<div class="k">Jadwal survey</div><p class="nx-text">' + fmtDate(l.surveyAt) + ' · ' + fmtTime(l.surveyAt) + '</p>';
+          html += '<div class="k">Catatan</div>';
+          if (!(l.notes || []).length) html += '<p class="nx-muted">Belum ada catatan.</p>';
+          else html += '<ul class="nx-text" style="padding-left:18px;margin:4px 0 0">' + l.notes.slice().reverse().map(function (n) {
+            return '<li>' + escapeHtml(fmtDate(n.ts)) + ' · ' + escapeHtml(n.text) + '</li>';
+          }).join("") + '</ul>';
+          html += '</div></td></tr>';
+        }
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    el.innerHTML = html;
+
+    document.getElementById("t-period").addEventListener("change", function (e) { teamFilters.period = e.target.value; renderTeamView(); });
+    el.querySelectorAll("tr[data-who]").forEach(function (r) {
+      r.addEventListener("click", function () {
+        teamFilters.who = teamFilters.who === r.getAttribute("data-who") ? "" : r.getAttribute("data-who");
+        renderTeamView();
+      });
+    });
+    document.getElementById("t-who").addEventListener("change", function (e) { teamFilters.who = e.target.value; renderTeamView(); });
+    document.getElementById("t-stage").addEventListener("change", function (e) { teamFilters.stage = e.target.value; renderTeamView(); });
+    document.getElementById("t-q").addEventListener("input", function (e) {
+      teamFilters.q = e.target.value;
+      var c = e.target.selectionStart;
+      renderTeamView();
+      var again = document.getElementById("t-q");
+      if (again) { again.focus(); try { again.setSelectionRange(c, c); } catch (err) {} }
+    });
+    var hb = document.getElementById("t-history");
+    if (hb) hb.addEventListener("click", function () { hb.disabled = true; hb.textContent = "Memuat…"; ensureHistoryLoaded(); });
+    el.querySelectorAll("tr[data-tid]").forEach(function (r) {
+      r.addEventListener("click", function () {
+        var id = r.getAttribute("data-tid");
+        teamExpanded = teamExpanded === id ? null : id;
+        renderTeamView();
+      });
+    });
+  }
+
   // ---------- Input form ----------
 
   function renderInputForm() {
@@ -3038,7 +3247,9 @@
       var local = findLocalDuplicate(num);
       if (local || !db || num.length < 9) return local;
       // Older closed leads may not be loaded; ask the server too.
-      var res = await db.from("leads").select("*").eq("telp_norm", num).order("created_at", { ascending: false }).limit(1);
+      var dq = db.from("leads").select("*").eq("telp_norm", num);
+      if (me.email) dq = dq.eq("owner_email", me.email);
+      var res = await dq.order("created_at", { ascending: false }).limit(1);
       if (res.error || !res.data.length) return null;
       var found = rowToLead(res.data[0]);
       if (!leads.some(function (l) { return l.id === found.id; })) {
@@ -3115,7 +3326,8 @@
         lossRank: null,
         notes: catatan ? [{ ts: new Date().toISOString(), text: catatan }] : [],
         signals: signals,
-        nextAt: null, nextNote: "", surveyAt: null, ajakAt: null, konfirmAt: null, doneAt: null, objections: []
+        nextAt: null, nextNote: "", surveyAt: null, ajakAt: null, konfirmAt: null, doneAt: null, objections: [],
+        owner: me.email || ""
       };
       leads.unshift(lead);
       persistLead(lead);
@@ -3244,9 +3456,10 @@
       return q.lt("created_at", cutoff).in("stage", ["Deal", "Lost"]);
     }).then(function (older) {
       var known = {};
-      leads.forEach(function (l) { known[l.id] = true; });
-      older.forEach(function (l) { if (!known[l.id]) leads.push(l); });
+      leads.concat(teamLeads).forEach(function (l) { known[l.id] = true; });
+      placeLoaded(older.filter(function (l) { return !known[l.id]; }));
       leads.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+      teamLeads.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
       historyLoaded = true;
       refreshAll();
       showToast(older.length ? older.length + " lead lama dimuat" : "Tidak ada lead lama");
@@ -3265,6 +3478,7 @@
   async function loadClusterNotesFromDb() {
     var res = await db.from("cluster_notes").select("minat, note");
     if (res.error) throw res.error;
+    if (!res.data.length && !isAdmin()) return {};
     if (!res.data.length) {
       var seeded = {};
       var rows = Object.keys(CLUSTER_NOTES_SEED).map(function (k) {
@@ -3295,6 +3509,14 @@
     renderAll();
   }
 
+  function applyRole() {
+    document.getElementById("nav-team").hidden = !isAdmin();
+    document.getElementById("nav-all-label").textContent = isAdmin() ? "Lead Kantor" : "Lead Saya";
+    var who = document.getElementById("account-email");
+    who.textContent = isAdmin() ? (me.nama === "Admin" ? "Admin" : me.nama + " · Admin") : me.nama + " · Marketing";
+    document.body.classList.toggle("role-marketing", !isAdmin());
+  }
+
   async function startWithSupabase(client, session) {
     document.getElementById("login-overlay").classList.remove("show");
     document.getElementById("account").hidden = false;
@@ -3302,7 +3524,15 @@
     document.getElementById("account-email").textContent = session.user.email || "";
     try {
       db = client;
-      leads = await loadLeadsFromDb();
+      var mres = await client.from("team_members").select("email, nama, role");
+      if (mres.error) throw mres.error;
+      var mine = (mres.data || []).filter(function (m) { return m.email === (session.user.email || "").toLowerCase(); })[0];
+      if (!mine) { var nm = new Error("not member"); nm.code = "42501"; throw nm; }
+      me = { email: mine.email, nama: mine.nama || mine.email.split("@")[0], role: mine.role };
+      teamMembers = mres.data.filter(function (m) { return m.role === "marketing"; });
+      leads = []; teamLeads = [];
+      placeLoaded(await loadLeadsFromDb());
+      applyRole();
       clusterNotes = await loadClusterNotesFromDb();
       ensureObjectionNotes();
       renderAll();
@@ -3317,6 +3547,12 @@
     }
   }
 
+  var DEFAULT_EMAIL_DOMAIN = "shaistanayacity.com";
+  function loginEmailValue(v) {
+    v = v.trim().toLowerCase();
+    return v.indexOf("@") === -1 ? v + "@" + DEFAULT_EMAIL_DOMAIN : v;
+  }
+
   function showLogin(client) {
     document.getElementById("login-overlay").classList.add("show");
     var form = document.getElementById("login-form");
@@ -3327,7 +3563,7 @@
       errEl.textContent = "";
       submit.disabled = true;
       var res = await client.auth.signInWithPassword({
-        email: document.getElementById("login-email").value.trim(),
+        email: loginEmailValue(document.getElementById("login-email").value),
         password: document.getElementById("login-password").value
       });
       submit.disabled = false;
