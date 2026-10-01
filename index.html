@@ -321,6 +321,9 @@
     letter-spacing: -0.01em;
     line-height: 1;
   }
+  .stat-link { appearance: none; text-align: left; font: inherit; color: inherit; cursor: pointer; display: block; width: 100%; }
+  .stat-link:hover { border-color: var(--line-strong); box-shadow: 0 2px 8px rgba(20, 20, 20, 0.07); }
+  .stat-sub { margin-top: 6px; font-size: 0.74rem; color: var(--muted); }
   .stat .value small { font-size: 0.92rem; font-weight: 500; color: var(--muted); }
 
   .panel {
@@ -1933,7 +1936,11 @@
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.total + '</span><span class="label">Total lead</span></div><div class="value mono">' + total + '</div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.check + '</span><span class="label">Sudah direspon</span></div><div class="value mono">' + resp.rate + '<small>%</small></div></div>';
     html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.survey + '</span><span class="label">Survey</span></div><div class="value mono">' + surveyCount + '</div></div>';
-    html += '<div class="stat"><div class="stat-top"><span class="stat-icon">' + ICONS.clock + '</span><span class="label">Rata-rata waktu respon</span></div><div class="value mono">' + (resp.avgMinutes != null ? resp.avgMinutes : "—") + '<small> mnt</small></div></div>';
+    // Snapshot of the pipeline right now (not limited to the date range): active leads rated Hot.
+    var hotActive = leads.filter(function (l) { return activeLead(l) && leadTemperature(l) === "Hot"; });
+    var hotNoPlan = hotActive.filter(function (l) { return !l.surveyAt && !l.ajakAt; }).length;
+    html += '<button type="button" class="stat stat-link" id="stat-hot" title="Lihat lead Hot yang masih aktif"><div class="stat-top"><span class="stat-icon">' + ICONS.bolt + '</span><span class="label">Lead Hot aktif</span></div><div class="value mono">' + hotActive.length + '</div>' +
+      '<div class="stat-sub">' + (hotActive.length ? (hotNoPlan ? hotNoPlan + " belum punya jadwal survey" : "semua sudah punya rencana survey") : "belum ada lead Hot") + '</div></button>';
     html += '</div>';
 
     var rangeDays = Math.round((range.end - range.start) / 86400000);
@@ -2044,6 +2051,12 @@
       });
     });
 
+    var hotCard = document.getElementById("stat-hot");
+    if (hotCard) hotCard.addEventListener("click", function () {
+      filters = { source: "", stage: "Aktif", minat: "", temp: "Hot", q: "", dateFrom: "", dateTo: "" };
+      renderAllLeadsView();
+      switchView("all");
+    });
     var gotoBtn = document.getElementById("goto-all");
     if (gotoBtn) gotoBtn.addEventListener("click", function () { switchView("all"); });
     bindAddLeadShortcut("ph-add-dash");
