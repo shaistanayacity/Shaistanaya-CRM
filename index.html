@@ -948,7 +948,7 @@
       </button>
       <button data-view="tugas">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 8.2l2 2 4-4.4"/></svg>
-        <span>Tugas Hari Ini</span><span class="nav-count" id="tg-count"></span>
+        <span>Follow Up</span><span class="nav-count" id="tg-count"></span>
       </button>
       <button data-view="all">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="1.5" width="13" height="13" rx="0.5"/><line x1="1.5" y1="6" x2="14.5" y2="6"/><line x1="1.5" y1="10" x2="14.5" y2="10"/></svg>
@@ -2532,7 +2532,7 @@
     if (badge) badge.textContent = all.length ? String(all.length) : "";
     var shown = all.filter(function (t) { return tgFilter === "all" || tgFilter === t.type; });
     var now = new Date();
-    var html = renderPageHeader("Tugas Hari Ini", DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MON_NAMES[now.getMonth()] + " · urut dari yang paling mendesak", null);
+    var html = renderPageHeader("Follow Up", DAY_NAMES[now.getDay()] + ", " + now.getDate() + " " + MON_NAMES[now.getMonth()] + " · urut dari yang paling mendesak", null);
     html += '<div class="tg-progress"><div class="track"><div class="fill" style="width:' + (total ? Math.round(doneList.length / total * 100) : 0) + '%"></div></div><b class="mono">' + doneList.length + ' dari ' + total + ' selesai</b></div>';
     var chips = [["all", "Semua (" + all.length + ")"], ["respon", "Belum direspon (" + counts.respon + ")"], ["hot", "Hot (" + counts.hot + ")"], ["fu", "Follow up (" + counts.fu + ")"], ["konfirmasi", "Konfirmasi survey (" + counts.konfirmasi + ")"]];
     html += '<div class="tg-filters">' + chips.map(function (c) {
