@@ -3270,10 +3270,11 @@
     var dupAcceptedFor = null; // normalized number the CS chose to save anyway
 
     function findLocalDuplicate(num) {
-      if (num.length < 9) return null;
+      if (!isAdmin() || num.length < 9) return null; // peringatan nomor dobel hanya untuk admin
       return leads.find(function (l) { return normPhone(l.telp) === num; }) || null;
     }
     async function findDuplicate(num) {
+      if (!isAdmin()) return null;
       var local = findLocalDuplicate(num);
       if (local || !db || num.length < 9) return local;
       // Older closed leads may not be loaded; ask the server too.
